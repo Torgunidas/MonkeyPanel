@@ -1,16 +1,10 @@
 /*
   MonkeyPanel Apps Script Backend MVP
 
-  Spreadsheet source of truth:
-  - Plan = readonly training template / coach workflow
-  - WG = readonly progression / measurements helper
-  - APP_LOG = app workout writes
-  - APP_MEASUREMENTS = app measurement writes
-  - APP_STATUS = app workout status writes
-
-  Deploy as Web App:
-  - Execute as: Me
-  - Who has access: Anyone with the link
+  Source of truth:
+  - Plan = readonly coach workflow
+  - WG = readonly progression/helper sheet
+  - APP_LOG / APP_MEASUREMENTS / APP_STATUS = app writes
 */
 
 const MP = {
@@ -21,19 +15,19 @@ const MP = {
   LOG_SHEET: 'APP_LOG',
   MEASUREMENTS_SHEET: 'APP_MEASUREMENTS',
   STATUS_SHEET: 'APP_STATUS',
-  VERSION: '0.1.0'
+  TIMEZONE: 'Europe/Warsaw',
+  VERSION: '0.1.1'
 };
 
 function doGet(e) {
   const action = (e && e.parameter && e.parameter.action) || 'health';
-
   try {
-    if (action === 'health') return json_({ ok: true, version: MP.VERSION });
+    if (action === 'health') return json_({ ok: true, version: MP.VERSION, timezone: MP.TIMEZONE, now: nowLocal_() });
     if (action === 'getPlan') return json_(getPlan_());
     if (action === 'getMeasurements') return json_(getMeasurements_());
-    return json_({ ok: false, error: 'Unknown action: ' + action }, 400);
+    return json_({ ok: false, error: 'Unknown action: ' + action });
   } catch (err) {
-    return json_({ ok: false, error: String(err), stack: err && err.stack }, 500);
+    return json_({ ok: false, error: String(err), stack: err && err.stack });
   }
 }
 
@@ -41,14 +35,12 @@ function doPost(e) {
   try {
     const payload = parsePayload_(e);
     const action = payload.action;
-
     if (action === 'saveWorkoutLog') return json_(saveWorkoutLog_(payload));
     if (action === 'saveMeasurements') return json_(saveMeasurements_(payload));
     if (action === 'saveStatus') return json_(saveStatus_(payload));
-
-    return json_({ ok: false, error: 'Unknown action: ' + action }, 400);
+    return json_({ ok: false, error: 'Unknown action: ' + action });
   } catch (err) {
-    return json_({ ok: false, error: String(err), stack: err && err.stack }, 500);
+    return json_({ ok: false, error: String(err), stack: err && err.stack });
   }
 }
 
@@ -61,6 +53,7 @@ function setupMonkeyPanelSheets() {
     ['template_version', 'MonkeyPanel Template v1', 'Wersja szablonu arkusza'],
     ['canonical_plan_sheet', MP.PLAN_SHEET, 'Arkusz planu trenera, readonly'],
     ['progression_sheet', MP.WG_SHEET, 'Arkusz progresji / pomocniczy, readonly'],
+    ['timezone', MP.TIMEZONE, 'Timestampy zapisujemy jawnie w polskim czasie lokalnym'],
     ['parser_rule', 'training_blocks', 'Szukaj nagłówków typu 1 TRENING, 2 TRENING; czytaj tabelę pod nagłówkiem'],
     ['write_rule', 'app_sheets_only', 'MonkeyPanel zapisuje tylko do APP_*']
   ]);
@@ -78,61 +71,50 @@ function setupMonkeyPanelSheets() {
     'timestamp', 'client_id', 'session_id', 'workout_date', 'week', 'workout_id', 'status', 'completed_exercises', 'total_exercises', 'payload_json'
   ]]);
 
-  return { ok: true, message: 'MonkeyPanel APP_* sheets initialized' };
+  return { ok: true, message: 'MonkeyPanel APP_* sheets initialized', timezone: MP.TIMEZONE };
 }
 
 function getPlan_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(MP.PLAN_SHEET);
   if (!sheet) throw new Error('Missing sheet: ' + MP.PLAN_SHEET);
-
   const values = sheet.getDataRange().getDisplayValues();
-  const workouts = parsePlanBlocks_(values);
-  const videos = parseVideos_(values);
-  const rpe = parseRpe_(values);
-
   return {
     ok: true,
     version: MP.VERSION,
+    timezone: MP.TIMEZONE,
     clientId: getConfigValue_('client_id', MP.CLIENT_ID),
     planSheet: MP.PLAN_SHEET,
-    workouts,
-    videos,
-    rpe
+    workouts: parsePlanBlocks_(values),
+    videos: parseVideos_(values),
+    rpe: parseRpe_(values)
   };
 }
 
 function parsePlanBlocks_(values) {
   const workouts = [];
-
   for (let r = 0; r < values.length; r++) {
     const row = values[r];
     const header = findTrainingHeader_(row);
     if (!header) continue;
-
     const workoutId = Number(header.match(/^(\d+)/)[1]);
-    const workoutName = header.trim();
     const columns = findExerciseColumns_(values, r + 1);
     if (!columns) continue;
-
     const exercises = [];
     for (let i = columns.headerRow + 1; i < values.length; i++) {
       const rr = values[i];
       if (findTrainingHeader_(rr)) break;
-
       const no = cell_(rr, columns.noCol);
       const name = cell_(rr, columns.nameCol);
       const set = cell_(rr, columns.setCol);
       const reps = cell_(rr, columns.repsCol);
       const rest = columns.restCol >= 0 ? cell_(rr, columns.restCol) : '';
       const notes = columns.notesCol >= 0 ? cell_(rr, columns.notesCol) : '';
-
       if (!no && !name) {
         if (exercises.length > 0) break;
         continue;
       }
       if (!name) continue;
-
       exercises.push({
         no: no || '',
         name,
@@ -143,15 +125,8 @@ function parsePlanBlocks_(values) {
         type: inferExerciseType_(name, notes, rest)
       });
     }
-
-    workouts.push({
-      id: workoutId,
-      name: workoutName,
-      focus: inferWorkoutFocus_(workoutId),
-      exercises
-    });
+    workouts.push({ id: workoutId, name: header.trim(), focus: inferWorkoutFocus_(workoutId), exercises });
   }
-
   return workouts;
 }
 
@@ -172,7 +147,6 @@ function findExerciseColumns_(values, startRow) {
     const repsCol = row.findIndex(v => v === 'reps');
     const restCol = row.findIndex(v => v === 'rest');
     const notesCol = row.findIndex(v => v === 'uwagi');
-
     if (noCol >= 0 && nameCol >= 0 && setCol >= 0 && repsCol >= 0) {
       return { headerRow: r, noCol, nameCol, setCol, repsCol, restCol, notesCol };
     }
@@ -201,13 +175,10 @@ function parseRpe_(values) {
     const joined = row.join(' ').toLowerCase();
     if (joined.includes('tabela rpe')) inTable = true;
     if (!inTable) continue;
-
     const rpe = cell_(row, 1);
     const desc = cell_(row, 3);
     const reserve = cell_(row, 8);
-    if (rpe && desc && rpe.toLowerCase() !== 'rpe') {
-      rows.push({ rpe, description: desc, reserve });
-    }
+    if (rpe && desc && rpe.toLowerCase() !== 'rpe') rows.push({ rpe, description: desc, reserve });
   }
   return rows;
 }
@@ -217,7 +188,7 @@ function saveWorkoutLog_(payload) {
   setupMonkeyPanelSheets();
   const sheet = ss.getSheetByName(MP.LOG_SHEET);
   const rows = [];
-  const timestamp = new Date();
+  const timestamp = nowLocal_();
   const clientId = payload.clientId || MP.CLIENT_ID;
   const session = payload.session || {};
   const exercises = payload.exercises || [];
@@ -250,18 +221,16 @@ function saveWorkoutLog_(payload) {
 
   if (rows.length) sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
   saveStatus_(payload);
-
-  return { ok: true, rowsWritten: rows.length };
+  return { ok: true, rowsWritten: rows.length, timestamp, timezone: MP.TIMEZONE };
 }
 
 function saveMeasurements_(payload) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   setupMonkeyPanelSheets();
   const sheet = ss.getSheetByName(MP.MEASUREMENTS_SHEET);
-  const timestamp = new Date();
+  const timestamp = nowLocal_();
   const values = payload.values || payload.measurements || {};
-
-  const row = [
+  sheet.appendRow([
     timestamp,
     payload.clientId || MP.CLIENT_ID,
     payload.date || payload.measurementDate || '',
@@ -274,23 +243,20 @@ function saveMeasurements_(payload) {
     values.Szyja || values.szyja || '',
     values.Waga || values.waga || '',
     JSON.stringify(payload)
-  ];
-
-  sheet.appendRow(row);
-  return { ok: true, rowsWritten: 1 };
+  ]);
+  return { ok: true, rowsWritten: 1, timestamp, timezone: MP.TIMEZONE };
 }
 
 function saveStatus_(payload) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(MP.STATUS_SHEET);
   if (!sheet) return { ok: false, error: 'Missing APP_STATUS' };
-
   const session = payload.session || {};
   const exercises = payload.exercises || [];
   const completed = exercises.filter(ex => (ex.sets || []).every(s => s.done !== false)).length;
-
+  const timestamp = nowLocal_();
   sheet.appendRow([
-    new Date(),
+    timestamp,
     payload.clientId || MP.CLIENT_ID,
     session.sessionId || payload.sessionId || '',
     session.workoutDate || payload.workoutDate || '',
@@ -301,8 +267,7 @@ function saveStatus_(payload) {
     exercises.length,
     JSON.stringify(payload)
   ]);
-
-  return { ok: true };
+  return { ok: true, timestamp, timezone: MP.TIMEZONE };
 }
 
 function getMeasurements_() {
@@ -314,6 +279,10 @@ function getMeasurements_() {
   const headers = values[0];
   const rows = values.slice(1).map(row => objectFromRow_(headers, row));
   return { ok: true, measurements: rows };
+}
+
+function nowLocal_() {
+  return Utilities.formatDate(new Date(), MP.TIMEZONE, 'yyyy-MM-dd HH:mm:ss');
 }
 
 function ensureSheet_(ss, name, initialRows) {
@@ -331,9 +300,7 @@ function getConfigValue_(key, fallback) {
   const sheet = ss.getSheetByName(MP.CONFIG_SHEET);
   if (!sheet) return fallback;
   const values = sheet.getDataRange().getDisplayValues();
-  for (const row of values) {
-    if (row[0] === key) return row[1] || fallback;
-  }
+  for (const row of values) if (row[0] === key) return row[1] || fallback;
   return fallback;
 }
 
@@ -343,9 +310,7 @@ function parsePayload_(e) {
 }
 
 function json_(data) {
-  return ContentService
-    .createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
+  return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
 }
 
 function cell_(row, index) {
