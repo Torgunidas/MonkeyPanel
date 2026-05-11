@@ -43,10 +43,63 @@ function setMeasurement(name,value){const key=planKey(`${todayKey()}__W${state.w
 function renderHistory(){const sess=currentSession(),w=workout(sess.workoutId);document.getElementById("view").innerHTML=`<section class="card"><h2>Log treningowy</h2><div class="subtitle">${w.name} · ${dateLabel(sess.date)} · tydzień ${sess.week}</div>${w.exercises.map(ex=>{const sets=state.logs[exerciseKey(ex,sess)]||[];if(!sets.length)return"";return `<div class="summaryBlock"><strong>${esc(ex.name)}</strong>${sets.map((s,i)=>`<div class="summaryLine"><span>${i+1}. ${esc(s.note)}</span><span>${esc(s.kg||"-")} kg × ${esc(s.reps||"-")} ${s.rpe?`RPE ${esc(s.rpe)}`:""}</span></div>`).join("")}</div>`}).join("")}<div class="actions"><button class="btn secondary" onclick="setSession(${JSON.stringify(sess).replace(/"/g,"&quot;")})">Wróć</button><button class="btn good" onclick="syncWorkout(${JSON.stringify(sess).replace(/"/g,"&quot;")})">Zapisz do arkusza</button></div></section>`}
 function normText(s){return String(s||"").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ł/g,"l").replace(/[^a-z0-9]+/g," ").trim()}function videoForExercise(name){if(VIDEOS[name])return VIDEOS[name];const n=normText(name);for(const[k,u]of Object.entries(VIDEOS)){if(normText(k)===n||n.includes(normText(k))||normText(k).includes(n))return u}return""}function youtubeId(url){const s=String(url||"");let m=s.match(/youtu\.be\/([^?&/]+)/);if(m)return m[1];m=s.match(/[?&]v=([^?&]+)/);if(m)return m[1];m=s.match(/embed\/([^?&/]+)/);if(m)return m[1];return""}function videoBlock(name){const url=videoForExercise(name);if(!url)return"";const open=!!state.videoOpen[name],id=youtubeId(url);return `<div class="note"><button class="btn secondary full" onclick="toggleVideo('${esc(name)}')">${open?"Ukryj film":"▶ Pokaż film instruktażowy"}</button>${open&&id?`<div class="embed"><iframe src="https://www.youtube-nocookie.com/embed/${esc(id)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`:`${open?`<div class="subtitle" style="margin-top:8px">Nie udało się zbudować embedu z linku: ${esc(url)}</div>`:""}`}</div>`}function toggleVideo(name){state.videoOpen[name]=!state.videoOpen[name];render()}
 function showRPE(){document.getElementById("modalRoot").innerHTML=`<div class="modal" onclick="hideModal()"><div class="panel" onclick="event.stopPropagation()"><div style="display:flex;justify-content:space-between;gap:8px"><h2>Tabela RPE</h2><button class="btn secondary" onclick="hideModal()">Zamknij</button></div><table><thead><tr><th>RPE</th><th>Opis</th><th>Zapas</th></tr></thead><tbody>${RPE.map(r=>`<tr><td><strong>${esc(r[0])}</strong></td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join("")}</tbody></table></div></div>`}function hideModal(){document.getElementById("modalRoot").innerHTML=""}function showToast(text){const el=document.createElement("div");el.className="toast";el.textContent=text;document.body.appendChild(el);setTimeout(()=>el.remove(),1200)}
-function workoutPayload(sess=currentSession()){const w=workout(sess.workoutId);return{action:"saveWorkoutLog",clientId:"gabriel",planId:planId(),session:{sessionId:sess.id,workoutDate:sess.date,week:sess.week,workoutId:w.id,workoutName:w.name},exercises:w.exercises.map(ex=>({no:ex.no,name:ex.name,sets:(state.logs[exerciseKey(ex,sess)]||[]).map((s,i)=>({setNo:i+1,plannedLabel:s.note,kg:s.kg||"",reps:s.reps||"",rpe:s.rpe||"",done:!!s.done,note:s.freeNote||""}))}))}}async function syncWorkout(sess=currentSession()){await apiPost(workoutPayload(sess),"✅ Trening zapisany do arkusza")}async function apiPost(payload,msg){try{showToast("Zapisywanie…");const res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)});const data=await res.json();if(!data.ok)throw new Error(data.error||"Błąd backendu");apiStatus="Zapis działa";apiStatusKind="ok";showToast(msg);render();return data}catch(e){console.error(e);apiStatus="Błąd zapisu do arkusza";apiStatusKind="err";showToast("❌ Nie udało się zapisać");render();return null}}
+function workoutPayload(sess=currentSession()){const w=workout(sess.workoutId);return{action:"saveWorkoutLog",clientId:"gabriel",planId:planId(),session:{sessionId:sess.id,workoutDate:sess.date,week:sess.week,workoutId:w.id,workoutName:w.name},exercises:w.exercises.map(ex=>({no:ex.no,name:ex.name,sets:(state.logs[exerciseKey(ex,sess)]||[]).map((s,i)=>({setNo:i+1,plannedLabel:s.note,kg:s.kg||"",reps:s.reps||"",rpe:s.rpe||"",done:!!s.done,note:s.freeNote||""}))}))}}async function syncWorkout(sess=currentSession()){await apiPost(workoutPayload(sess),"✅ Trening zapisany do arkusza");await apiGetWorkoutLog()}async function apiPost(payload,msg){try{showToast("Zapisywanie…");const res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)});const data=await res.json();if(!data.ok)throw new Error(data.error||"Błąd backendu");apiStatus="Zapis działa";apiStatusKind="ok";showToast(msg);render();return data}catch(e){console.error(e);apiStatus="Błąd zapisu do arkusza";apiStatusKind="err";showToast("❌ Nie udało się zapisać");render();return null}}
+
+function parseDoneFlag(v){return v===true||String(v||"").toLowerCase()==="true"||String(v||"")==="1"||String(v||"").toLowerCase()==="tak"}
+function normalizeServerLogRow(r){
+  const pid=r.plan_id||r.planId||planId();
+  const date=r.workout_date||r.workoutDate||"";
+  const sid=r.session_id||r.sessionId||"";
+  const exNo=r.exercise_no||r.exerciseNo||"";
+  if(!pid||!date||!sid||!exNo)return null;
+  const key=`${pid}__${date}__${sid}__E${exNo}`;
+  const setNo=parseInt(r.set_no||r.setNo||"1",10)||1;
+  return {key,setNo,timestamp:r.timestamp||"",set:{
+    id:`srv_${key}_${setNo}`,
+    note:r.planned_label||r.plannedLabel||`Seria ${setNo}`,
+    kg:String(r.kg||""),
+    reps:String(r.reps||""),
+    rpe:String(r.rpe||""),
+    done:parseDoneFlag(r.done),
+    freeNote:r.note||""
+  }};
+}
+function hydrateLogsFromServer(rows){
+  if(!Array.isArray(rows))return;
+  const bySet={};
+  rows.forEach(r=>{
+    const pid=r.plan_id||r.planId||planId();
+    if(pid!==planId())return;
+    const n=normalizeServerLogRow(r);
+    if(!n)return;
+    const unique=`${n.key}__S${n.setNo}`;
+    if(!bySet[unique]||String(n.timestamp).localeCompare(String(bySet[unique].timestamp))>=0){
+      bySet[unique]=n;
+    }
+  });
+  const grouped={};
+  Object.values(bySet).forEach(n=>{
+    grouped[n.key]=grouped[n.key]||[];
+    grouped[n.key][n.setNo-1]=n.set;
+  });
+  Object.entries(grouped).forEach(([key,sets])=>{
+    state.logs[key]=sets.filter(Boolean);
+  });
+  save();
+}
+async function apiGetWorkoutLog(){
+  try{
+    const res=await fetch(`${API_URL}?action=getWorkoutLog&planId=${encodeURIComponent(planId())}&ts=${Date.now()}`);
+    const data=await res.json();
+    if(!data.ok||!Array.isArray(data.logs))return;
+    hydrateLogsFromServer(data.logs);
+    render();
+  }catch(e){console.warn(e)}
+}
+
 async function apiGetPlan(){try{apiStatus="Łączenie z arkuszem…";apiStatusKind="loading";render();const res=await fetch(`${API_URL}?action=getPlan&ts=${Date.now()}`);const data=await res.json();if(!data.ok)throw new Error(data.error||"Błąd backendu");CURRENT_PLAN={planId:data.planId||"unknown_plan",planName:data.planName||data.planId||"Plan",planStatus:data.planStatus||"active"};if(Array.isArray(data.workouts)&&data.workouts.length)PLAN=data.workouts;if(data.videos)VIDEOS=data.videos;if(Array.isArray(data.rpe)&&data.rpe.length)RPE=data.rpe.map(x=>[x.rpe,x.description,x.reserve||""]);apiStatus=`Połączono z arkuszem · ${CURRENT_PLAN.planId}`;apiStatusKind="ok"}catch(e){console.error(e);apiStatus="Offline/mock: nie udało się pobrać arkusza";apiStatusKind="err"}finally{render()}}
 async function apiGetMeasurements(){try{const res=await fetch(`${API_URL}?action=getMeasurements&ts=${Date.now()}`);const data=await res.json();if(!data.ok||!Array.isArray(data.measurements))return;data.measurements.forEach(r=>{const pid=r.plan_id||planId();if(pid!==planId())return;const key=`${pid}__${r.measurement_date||r.date||todayKey()}__W${r.week||""}`;state.measurements[key]={};MEASUREMENTS.forEach(m=>{if(r[m])state.measurements[key][m]=r[m]})});save()}catch(e){console.warn(e)}}
-apiGetPlan().then(apiGetMeasurements);
+apiGetPlan().then(()=>apiGetWorkoutLog()).then(()=>apiGetMeasurements());
 </script>
 </body>
 </html>

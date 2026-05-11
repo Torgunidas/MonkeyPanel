@@ -20,7 +20,7 @@ const MP = {
   MEASUREMENTS_SHEET: 'APP_MEASUREMENTS',
   STATUS_SHEET: 'APP_STATUS',
   TIMEZONE: 'Europe/Warsaw',
-  VERSION: '0.1.3'
+  VERSION: '0.1.4'
 };
 
 const LOG_HEADERS = [
@@ -42,6 +42,7 @@ function doGet(e) {
     if (action === 'health') return json_({ ok: true, version: MP.VERSION, timezone: MP.TIMEZONE, now: nowLocal_(), planId: getPlanId_() });
     if (action === 'getPlan') return json_(getPlan_());
     if (action === 'getMeasurements') return json_(getMeasurements_());
+    if (action === 'getWorkoutLog') return json_(getWorkoutLog_(e));
     return json_({ ok: false, error: 'Unknown action: ' + action });
   } catch (err) {
     return json_({ ok: false, error: String(err), stack: err && err.stack });
@@ -252,6 +253,22 @@ function saveStatus_(payload, shouldRefreshTrainerViews) {
   ]);
   if (shouldRefreshTrainerViews !== false) refreshTrainerViews_();
   return { ok: true, timestamp, timezone: MP.TIMEZONE, planId, trainerViewsRefreshed: shouldRefreshTrainerViews !== false };
+}
+
+function getWorkoutLog_(e) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(MP.LOG_SHEET);
+  if (!sheet || sheet.getLastRow() < 2) return { ok: true, logs: [] };
+
+  const requestedPlanId = (e && e.parameter && e.parameter.planId) || getPlanId_();
+  const values = sheet.getDataRange().getDisplayValues();
+  const headers = values[0];
+  const rows = values.slice(1)
+    .filter(row => row.some(Boolean))
+    .map(row => objectFromRow_(headers, row))
+    .filter(row => !requestedPlanId || !row.plan_id || row.plan_id === requestedPlanId);
+
+  return { ok: true, logs: rows, planId: requestedPlanId };
 }
 
 function getMeasurements_() {
