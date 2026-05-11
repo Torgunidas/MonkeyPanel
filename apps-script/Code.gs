@@ -9,6 +9,9 @@
 
 const MP = {
   CLIENT_ID: 'gabriel',
+  PLAN_ID: 'gabriel_plan_2026_05_v1',
+  PLAN_NAME: 'Gabriel Plan v1',
+  PLAN_STATUS: 'active',
   PLAN_SHEET: 'Plan',
   WG_SHEET: 'WG',
   CONFIG_SHEET: 'APP_CONFIG',
@@ -16,13 +19,26 @@ const MP = {
   MEASUREMENTS_SHEET: 'APP_MEASUREMENTS',
   STATUS_SHEET: 'APP_STATUS',
   TIMEZONE: 'Europe/Warsaw',
-  VERSION: '0.1.1'
+  VERSION: '0.1.2'
 };
+
+const LOG_HEADERS = [
+  'timestamp', 'client_id', 'session_id', 'workout_date', 'week', 'workout_id', 'workout_name',
+  'exercise_no', 'exercise_name', 'set_no', 'planned_label', 'kg', 'reps', 'rpe', 'done', 'note', 'source', 'payload_json', 'plan_id'
+];
+
+const MEASUREMENT_HEADERS = [
+  'timestamp', 'client_id', 'measurement_date', 'week', 'Udo', 'Dupa', 'Brzuch', 'Klatka', 'Biceps', 'Szyja', 'Waga', 'payload_json', 'plan_id'
+];
+
+const STATUS_HEADERS = [
+  'timestamp', 'client_id', 'session_id', 'workout_date', 'week', 'workout_id', 'status', 'completed_exercises', 'total_exercises', 'payload_json', 'plan_id'
+];
 
 function doGet(e) {
   const action = (e && e.parameter && e.parameter.action) || 'health';
   try {
-    if (action === 'health') return json_({ ok: true, version: MP.VERSION, timezone: MP.TIMEZONE, now: nowLocal_() });
+    if (action === 'health') return json_({ ok: true, version: MP.VERSION, timezone: MP.TIMEZONE, now: nowLocal_(), planId: getPlanId_() });
     if (action === 'getPlan') return json_(getPlan_());
     if (action === 'getMeasurements') return json_(getMeasurements_());
     return json_({ ok: false, error: 'Unknown action: ' + action });
@@ -50,6 +66,9 @@ function setupMonkeyPanelSheets() {
     ['key', 'value', 'description'],
     ['client_id', MP.CLIENT_ID, 'ID podopiecznego używane przez MonkeyPanel'],
     ['client_name', 'Gabriel', 'Nazwa wyświetlana'],
+    ['plan_id', MP.PLAN_ID, 'Stabilne ID planu. Historia zapisów jest przypisana do plan_id.'],
+    ['plan_name', MP.PLAN_NAME, 'Nazwa planu wyświetlana w panelach / raportach'],
+    ['plan_status', MP.PLAN_STATUS, 'active albo archived'],
     ['template_version', 'MonkeyPanel Template v1', 'Wersja szablonu arkusza'],
     ['canonical_plan_sheet', MP.PLAN_SHEET, 'Arkusz planu trenera, readonly'],
     ['progression_sheet', MP.WG_SHEET, 'Arkusz progresji / pomocniczy, readonly'],
@@ -58,20 +77,14 @@ function setupMonkeyPanelSheets() {
     ['write_rule', 'app_sheets_only', 'MonkeyPanel zapisuje tylko do APP_*']
   ]);
 
-  ensureSheet_(ss, MP.LOG_SHEET, [[
-    'timestamp', 'client_id', 'session_id', 'workout_date', 'week', 'workout_id', 'workout_name',
-    'exercise_no', 'exercise_name', 'set_no', 'planned_label', 'kg', 'reps', 'rpe', 'done', 'note', 'source', 'payload_json'
-  ]]);
+  ensureSheet_(ss, MP.LOG_SHEET, [LOG_HEADERS]);
+  ensureSheet_(ss, MP.MEASUREMENTS_SHEET, [MEASUREMENT_HEADERS]);
+  ensureSheet_(ss, MP.STATUS_SHEET, [STATUS_HEADERS]);
+  ensureHeaderColumn_(ss.getSheetByName(MP.LOG_SHEET), 'plan_id');
+  ensureHeaderColumn_(ss.getSheetByName(MP.MEASUREMENTS_SHEET), 'plan_id');
+  ensureHeaderColumn_(ss.getSheetByName(MP.STATUS_SHEET), 'plan_id');
 
-  ensureSheet_(ss, MP.MEASUREMENTS_SHEET, [[
-    'timestamp', 'client_id', 'measurement_date', 'week', 'Udo', 'Dupa', 'Brzuch', 'Klatka', 'Biceps', 'Szyja', 'Waga', 'payload_json'
-  ]]);
-
-  ensureSheet_(ss, MP.STATUS_SHEET, [[
-    'timestamp', 'client_id', 'session_id', 'workout_date', 'week', 'workout_id', 'status', 'completed_exercises', 'total_exercises', 'payload_json'
-  ]]);
-
-  return { ok: true, message: 'MonkeyPanel APP_* sheets initialized', timezone: MP.TIMEZONE };
+  return { ok: true, message: 'MonkeyPanel APP_* sheets initialized', timezone: MP.TIMEZONE, planId: getPlanId_() };
 }
 
 function getPlan_() {
@@ -84,6 +97,9 @@ function getPlan_() {
     version: MP.VERSION,
     timezone: MP.TIMEZONE,
     clientId: getConfigValue_('client_id', MP.CLIENT_ID),
+    planId: getPlanId_(),
+    planName: getConfigValue_('plan_name', MP.PLAN_NAME),
+    planStatus: getConfigValue_('plan_status', MP.PLAN_STATUS),
     planSheet: MP.PLAN_SHEET,
     workouts: parsePlanBlocks_(values),
     videos: parseVideos_(values),
@@ -115,15 +131,7 @@ function parsePlanBlocks_(values) {
         continue;
       }
       if (!name) continue;
-      exercises.push({
-        no: no || '',
-        name,
-        sets: set || '',
-        reps: reps || '',
-        rest: rest || '',
-        notes: notes || '',
-        type: inferExerciseType_(name, notes, rest)
-      });
+      exercises.push({ no: no || '', name, sets: set || '', reps: reps || '', rest: rest || '', notes: notes || '', type: inferExerciseType_(name, notes, rest) });
     }
     workouts.push({ id: workoutId, name: header.trim(), focus: inferWorkoutFocus_(workoutId), exercises });
   }
@@ -147,9 +155,7 @@ function findExerciseColumns_(values, startRow) {
     const repsCol = row.findIndex(v => v === 'reps');
     const restCol = row.findIndex(v => v === 'rest');
     const notesCol = row.findIndex(v => v === 'uwagi');
-    if (noCol >= 0 && nameCol >= 0 && setCol >= 0 && repsCol >= 0) {
-      return { headerRow: r, noCol, nameCol, setCol, repsCol, restCol, notesCol };
-    }
+    if (noCol >= 0 && nameCol >= 0 && setCol >= 0 && repsCol >= 0) return { headerRow: r, noCol, nameCol, setCol, repsCol, restCol, notesCol };
   }
   return null;
 }
@@ -190,6 +196,7 @@ function saveWorkoutLog_(payload) {
   const rows = [];
   const timestamp = nowLocal_();
   const clientId = payload.clientId || MP.CLIENT_ID;
+  const planId = payload.planId || getPlanId_();
   const session = payload.session || {};
   const exercises = payload.exercises || [];
 
@@ -197,31 +204,17 @@ function saveWorkoutLog_(payload) {
     const sets = ex.sets || [];
     sets.forEach((set, idx) => {
       rows.push([
-        timestamp,
-        clientId,
-        session.sessionId || payload.sessionId || '',
-        session.workoutDate || payload.workoutDate || '',
-        session.week || payload.week || '',
-        session.workoutId || payload.workoutId || '',
-        session.workoutName || payload.workoutName || '',
-        ex.no || '',
-        ex.name || '',
-        set.setNo || idx + 1,
-        set.plannedLabel || set.note || '',
-        set.kg || '',
-        set.reps || '',
-        set.rpe || '',
-        set.done === false ? false : true,
-        set.note || set.freeNote || '',
-        'MonkeyPanel',
-        JSON.stringify(payload)
+        timestamp, clientId, session.sessionId || payload.sessionId || '', session.workoutDate || payload.workoutDate || '',
+        session.week || payload.week || '', session.workoutId || payload.workoutId || '', session.workoutName || payload.workoutName || '',
+        ex.no || '', ex.name || '', set.setNo || idx + 1, set.plannedLabel || set.note || '', set.kg || '', set.reps || '', set.rpe || '',
+        set.done === false ? false : true, set.note || set.freeNote || '', 'MonkeyPanel', JSON.stringify(payload), planId
       ]);
     });
   });
 
   if (rows.length) sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
   saveStatus_(payload);
-  return { ok: true, rowsWritten: rows.length, timestamp, timezone: MP.TIMEZONE };
+  return { ok: true, rowsWritten: rows.length, timestamp, timezone: MP.TIMEZONE, planId };
 }
 
 function saveMeasurements_(payload) {
@@ -230,21 +223,14 @@ function saveMeasurements_(payload) {
   const sheet = ss.getSheetByName(MP.MEASUREMENTS_SHEET);
   const timestamp = nowLocal_();
   const values = payload.values || payload.measurements || {};
+  const planId = payload.planId || getPlanId_();
   sheet.appendRow([
-    timestamp,
-    payload.clientId || MP.CLIENT_ID,
-    payload.date || payload.measurementDate || '',
-    payload.week || '',
-    values.Udo || values.udo || '',
-    values.Dupa || values.dupa || '',
-    values.Brzuch || values.brzuch || '',
-    values.Klatka || values.klatka || '',
-    values.Biceps || values.biceps || '',
-    values.Szyja || values.szyja || '',
-    values.Waga || values.waga || '',
-    JSON.stringify(payload)
+    timestamp, payload.clientId || MP.CLIENT_ID, payload.date || payload.measurementDate || '', payload.week || '',
+    values.Udo || values.udo || '', values.Dupa || values.dupa || '', values.Brzuch || values.brzuch || '',
+    values.Klatka || values.klatka || '', values.Biceps || values.biceps || '', values.Szyja || values.szyja || '', values.Waga || values.waga || '',
+    JSON.stringify(payload), planId
   ]);
-  return { ok: true, rowsWritten: 1, timestamp, timezone: MP.TIMEZONE };
+  return { ok: true, rowsWritten: 1, timestamp, timezone: MP.TIMEZONE, planId };
 }
 
 function saveStatus_(payload) {
@@ -255,19 +241,13 @@ function saveStatus_(payload) {
   const exercises = payload.exercises || [];
   const completed = exercises.filter(ex => (ex.sets || []).every(s => s.done !== false)).length;
   const timestamp = nowLocal_();
+  const planId = payload.planId || getPlanId_();
   sheet.appendRow([
-    timestamp,
-    payload.clientId || MP.CLIENT_ID,
-    session.sessionId || payload.sessionId || '',
-    session.workoutDate || payload.workoutDate || '',
-    session.week || payload.week || '',
-    session.workoutId || payload.workoutId || '',
-    completed === exercises.length ? 'done' : 'partial',
-    completed,
-    exercises.length,
-    JSON.stringify(payload)
+    timestamp, payload.clientId || MP.CLIENT_ID, session.sessionId || payload.sessionId || '', session.workoutDate || payload.workoutDate || '',
+    session.week || payload.week || '', session.workoutId || payload.workoutId || '', completed === exercises.length ? 'done' : 'partial',
+    completed, exercises.length, JSON.stringify(payload), planId
   ]);
-  return { ok: true, timestamp, timezone: MP.TIMEZONE };
+  return { ok: true, timestamp, timezone: MP.TIMEZONE, planId };
 }
 
 function getMeasurements_() {
@@ -279,6 +259,10 @@ function getMeasurements_() {
   const headers = values[0];
   const rows = values.slice(1).map(row => objectFromRow_(headers, row));
   return { ok: true, measurements: rows };
+}
+
+function getPlanId_() {
+  return getConfigValue_('plan_id', MP.PLAN_ID);
 }
 
 function nowLocal_() {
@@ -293,6 +277,13 @@ function ensureSheet_(ss, name, initialRows) {
     sheet.getRange(1, 1, 1, initialRows[0].length).setFontWeight('bold');
   }
   return sheet;
+}
+
+function ensureHeaderColumn_(sheet, header) {
+  if (!sheet) return;
+  const lastCol = Math.max(1, sheet.getLastColumn());
+  const headers = sheet.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+  if (headers.indexOf(header) === -1) sheet.getRange(1, lastCol + 1).setValue(header).setFontWeight('bold');
 }
 
 function getConfigValue_(key, fallback) {
@@ -319,18 +310,7 @@ function cell_(row, index) {
 }
 
 function normalize_(value) {
-  return String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/ć/g, 'c')
-    .replace(/ą/g, 'a')
-    .replace(/ę/g, 'e')
-    .replace(/ł/g, 'l')
-    .replace(/ń/g, 'n')
-    .replace(/ó/g, 'o')
-    .replace(/ś/g, 's')
-    .replace(/ż/g, 'z')
-    .replace(/ź/g, 'z');
+  return String(value || '').trim().toLowerCase().replace(/ć/g, 'c').replace(/ą/g, 'a').replace(/ę/g, 'e').replace(/ł/g, 'l').replace(/ń/g, 'n').replace(/ó/g, 'o').replace(/ś/g, 's').replace(/ż/g, 'z').replace(/ź/g, 'z');
 }
 
 function inferExerciseType_(name, notes, rest) {
@@ -344,12 +324,7 @@ function inferExerciseType_(name, notes, rest) {
 }
 
 function inferWorkoutFocus_(id) {
-  const map = {
-    1: 'Dół + klatka + core',
-    2: 'Plecy + barki + tył',
-    3: 'Góra + push + core',
-    4: 'Cardio + mobilność'
-  };
+  const map = { 1: 'Dół + klatka + core', 2: 'Plecy + barki + tył', 3: 'Góra + push + core', 4: 'Cardio + mobilność' };
   return map[id] || '';
 }
 
