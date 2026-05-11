@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MonkeyPanel backend v0.1</title>
+<title>MonkeyPanel UI v3.3</title>
 <style>
 :root{
   --bg:#080808;--card:#141414;--card2:#1f1f1f;--line:#2c2c2c;--text:#f4f4f5;--muted:#a1a1aa;
@@ -11,10 +11,10 @@
   --accent:#f4f4f5;--accentText:#09090b
 }
 *{box-sizing:border-box}
-html{overflow-y:scroll}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 button,input,textarea{font:inherit}
 button{cursor:pointer}
-.app{width:min(560px,100%);max-width:560px;margin:0 auto;min-height:100dvh;padding:12px 12px 96px}
+.app{max-width:560px;margin:0 auto;min-height:100dvh;padding:12px 12px 96px}
 .top{position:sticky;top:0;z-index:20;margin:-12px -12px 12px;padding:14px 12px 10px;background:rgba(8,8,8,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
 .row{display:flex;gap:10px;align-items:center;justify-content:space-between}
 .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:850}
@@ -96,14 +96,14 @@ textarea{min-height:68px;padding:12px;resize:vertical}
 .modal .panel{max-width:560px;width:100%;max-height:86dvh;overflow:auto;margin:0 auto;background:#111;border:1px solid var(--line);border-radius:28px;padding:16px}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{border-bottom:1px solid #333;padding:9px;text-align:left;vertical-align:top}
-.back{margin-bottom:10px}.apiBadge{font-size:11px;color:var(--muted);margin-top:4px}.apiBadge.ok{color:#86efac}.apiBadge.err{color:#fca5a5}.apiBadge.loading{color:#fde68a}
+.back{margin-bottom:10px}
 </style>
 </head>
 <body>
 <div class="app">
 <header class="top">
   <div class="row">
-    <div><div class="eyebrow">MonkeyPanel</div><h1 id="headerTitle">Plan treningowy</h1><div class="subtitle" id="headerSub">Start: wtorek 12.05.2026</div><div class="apiBadge loading" id="apiStatus">Ładowanie planu…</div></div>
+    <div><div class="eyebrow">MonkeyPanel</div><h1 id="headerTitle">Plan treningowy</h1><div class="subtitle" id="headerSub">Start: wtorek 12.05.2026</div></div>
     <button class="btn secondary hidden" id="exitSessionBtn" onclick="exitSession()">Kalendarz</button>
   </div>
   <div class="progress"><div id="progressBar"></div></div>
@@ -119,19 +119,16 @@ th,td{border-bottom:1px solid #333;padding:9px;text-align:left;vertical-align:to
 <div class="bottomNav hidden" id="bottomNav"><div class="bottomInner"><button class="btn secondary" onclick="prevExercise()">← Wstecz</button><button class="btn" onclick="nextUndoneOrNext()">Dalej →</button></div></div>
 <div id="modalRoot"></div>
 <script>
-const API_URL="https://script.google.com/macros/s/AKfycbydQFQPaMX9nTgO2fo-hq4ITWZSVk-50y0vpA5rMFIifH5dPsZO8yP3WBlACnTPsSs_/exec";
-let apiStatus="Ładowanie planu…";
-let apiStatusKind="loading";
 const START_DATE="2026-05-12";
-let TOTAL_WEEKS=11;
+const TOTAL_WEEKS=9;
 const DAYS=[{dow:"wt.",workoutId:1,offset:0},{dow:"czw.",workoutId:2,offset:2},{dow:"sob.",workoutId:3,offset:4},{dow:"ndz.",workoutId:4,offset:5}];
-let VIDEOS={
+const VIDEOS={
   "Dynamiczny Warm-up na dolne partie ciała":"https://youtu.be/LDSMptYXAw4",
   "Dynamiczny Warm-up na górne partie ciała":"https://youtu.be/f2gf1Pu73gs",
   "Full Body Active Flexibility Routine":"https://youtu.be/aUm3qE2dvB8?si=eDNTv9M_Agt105EA"
 };
-let RPE=[["10","Maksimum. Więcej nie dasz rady.","0"],["9.5","Bardzo ciężko. Może jedno powtórzenie by weszło.","0–1"],["9","Bardzo ciężko, ale jedno powtórzenie jeszcze da się zrobić.","1"],["8","Mocno, ale kontrolujesz. 2 powtórzenia w zapasie.","2"],["7","Średnio ciężko. 3 powtórzenia w zapasie.","3"],["6","Lekko.","4+"],["5 i mniej","Bardzo lekko / rozgrzewka.","dużo"]];
-let PLAN=[
+const RPE=[["10","Maksimum. Więcej nie dasz rady.","0"],["9.5","Bardzo ciężko. Może jedno powtórzenie by weszło.","0–1"],["9","Bardzo ciężko, ale jedno powtórzenie jeszcze da się zrobić.","1"],["8","Mocno, ale kontrolujesz. 2 powtórzenia w zapasie.","2"],["7","Średnio ciężko. 3 powtórzenia w zapasie.","3"],["6","Lekko.","4+"],["5 i mniej","Bardzo lekko / rozgrzewka.","dużo"]];
+const PLAN=[
 {id:1,name:"1 TRENING",focus:"Dół + klatka + core",exercises:[
 {no:"1",name:"Orbitrek",sets:1,reps:"12 min",rest:"-",notes:"7 minut do przodu, 5 minut do tyłu",type:"time"},
 {no:"1a",name:"Dynamiczny Warm-up na dolne partie ciała",sets:1,reps:"-",rest:"-",notes:"W rozpisce №1",type:"warmup"},
@@ -171,12 +168,11 @@ let PLAN=[
 const MAIN_MAX={"Bench Press":80,"Larsen Press":70,"RDL":100};
 const WEEK_PROGRESSIONS={1:{main:[[.65,5],[.75,5],[.85,"5+"],[.65,5,3]],bulgary:[4,10],pompki:[4,10]},2:{main:[[.70,5],[.80,5],[.90,"3+"],[.675,5,3]],bulgary:[4,8],pompki:[4,8]},3:{main:[[.75,5],[.85,3],[.95,"1+"],[.70,5,3]],bulgary:[4,6],pompki:[4,6]},4:{main:[[.40,5],[.50,5],[.60,5]],bulgary:[3,10,"Deload"],pompki:[3,10,"Deload"]}};
 const MEASUREMENTS=["Udo","Dupa","Brzuch","Klatka","Biceps","Szyja","Waga"];
-let state=load("monkeypanel.backend.v01",{view:"train",mode:"calendar",activeSessionId:null,workoutId:1,week:1,exerciseIndex:0,logs:{},measurements:{},notes:{},videoOpen:{},finishedSessions:{}});
+let state=load("monkeypanel.v33",{view:"train",mode:"calendar",activeSessionId:null,workoutId:1,week:1,exerciseIndex:0,logs:{},measurements:{},notes:{},videoOpen:{},finishedSessions:{}});
 let restSeconds=0,timerId=null,autoAdvanceTimer=null;
-function load(k,f){try{return JSON.parse(localStorage.getItem(k))||f}catch{return f}} function save(){localStorage.setItem("monkeypanel.backend.v01",JSON.stringify(state))}
+function load(k,f){try{return JSON.parse(localStorage.getItem(k))||f}catch{return f}} function save(){localStorage.setItem("monkeypanel.v33",JSON.stringify(state))}
 function todayKey(){return new Date().toISOString().slice(0,10)} function dateObj(iso){const [y,m,d]=iso.split("-").map(Number);return new Date(y,m-1,d)} function isoDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`} function addDays(iso,days){const d=dateObj(iso);d.setDate(d.getDate()+days);return isoDate(d)} function formatPL(iso){return dateObj(iso).toLocaleDateString("pl-PL",{weekday:"short",day:"2-digit",month:"2-digit"})}
 function uid(){return Math.random().toString(36).slice(2)+Date.now().toString(36)} function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))} function roundTo2_5(x){return Math.floor(x/2.5)*2.5}
-function normText(s){return String(s||"").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ł/g,"l").replace(/[^a-z0-9]+/g," ").trim()}
 function schedule(){const out=[];for(let week=1;week<=TOTAL_WEEKS;week++){for(const d of DAYS){out.push({id:`W${week}T${d.workoutId}`,week,date:addDays(START_DATE,(week-1)*7+d.offset),workoutId:d.workoutId,dow:d.dow})}}return out}
 function currentSession(){return schedule().find(s=>s.id===state.activeSessionId)||schedule()[0]} function workout(id=state.workoutId){return PLAN.find(w=>w.id===id)||PLAN[0]} function exercise(){const w=workout();return w.exercises[Math.min(state.exerciseIndex,w.exercises.length-1)]}
 function exerciseKey(ex=exercise()){const s=currentSession();return `${s.date}__${s.id}__E${ex.no}`} function sessionExerciseKeys(sess=currentSession()){return workout(sess.workoutId).exercises.map(ex=>`${sess.date}__${sess.id}__E${ex.no}`)}
@@ -188,11 +184,11 @@ function exerciseDone(ex){const sets=setsFor(ex);return sets.length>0&&sets.ever
 function sessionDone(sess=currentSession()){const w=workout(sess.workoutId);return w.exercises.every(ex=>{const key=`${sess.date}__${sess.id}__E${ex.no}`;const sets=state.logs[key];return sets&&sets.length&&sets.every(s=>s.done)})}
 function sessionProgress(sess=currentSession()){if(sessionDone(sess))return 100;let done=0;const w=workout(sess.workoutId);w.exercises.forEach(ex=>{const key=`${sess.date}__${sess.id}__E${ex.no}`;const sets=state.logs[key];if(sets&&sets.length&&sets.every(s=>s.done))done++});return Math.round(done/w.exercises.length*100)}
 function sessionStatus(sess){if(sessionDone(sess))return"done";if(sess.date<todayKey())return"missed";if(sess.date===todayKey())return"due";return"future"} function statusLabel(st){return st==="done"?"zrobiony":st==="missed"?"pominięty":st==="due"?"dzisiaj":"przyszły"}
-function render(){save();const badge=document.getElementById("apiStatus");if(badge){badge.textContent=apiStatus;badge.className=`apiBadge ${apiStatusKind}`;}const sess=currentSession(),w=workout(sess.workoutId);document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.view===state.view));document.getElementById("exitSessionBtn").classList.toggle("hidden",!(state.view==="train"&&state.mode==="session"));document.getElementById("bottomNav").classList.toggle("hidden",!(state.view==="train"&&state.mode==="session"));if(state.view==="train"&&state.mode==="session"){document.getElementById("headerTitle").textContent=`${w.name} · ${formatPL(sess.date)}`;document.getElementById("headerSub").textContent=`Ćwiczenie ${state.exerciseIndex+1}/${w.exercises.length} · tydzień ${sess.week}`}else{document.getElementById("headerTitle").textContent=state.view==="plan"?"Rozpiska planu":state.view==="measure"?"Pomiary":state.view==="history"?"Podsumowanie":"Kalendarz treningów";document.getElementById("headerSub").textContent=`Plan ${TOTAL_WEEKS} tygodni · start 12.05.2026`}document.getElementById("progressBar").style.width=`${state.view==="train"&&state.mode==="session"?sessionProgress(sess):overallProgress()}%`;if(state.view==="train"&&state.mode==="calendar")renderCalendar();if(state.view==="train"&&state.mode==="session")renderSession();if(state.view==="plan")renderPlan();if(state.view==="measure")renderMeasurements();if(state.view==="history")renderHistory()}
+function render(){save();const sess=currentSession(),w=workout(sess.workoutId);document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.view===state.view));document.getElementById("exitSessionBtn").classList.toggle("hidden",!(state.view==="train"&&state.mode==="session"));document.getElementById("bottomNav").classList.toggle("hidden",!(state.view==="train"&&state.mode==="session"));if(state.view==="train"&&state.mode==="session"){document.getElementById("headerTitle").textContent=`${w.name} · ${formatPL(sess.date)}`;document.getElementById("headerSub").textContent=`Ćwiczenie ${state.exerciseIndex+1}/${w.exercises.length} · tydzień ${sess.week}`}else{document.getElementById("headerTitle").textContent=state.view==="plan"?"Rozpiska planu":state.view==="measure"?"Pomiary":state.view==="history"?"Podsumowanie":"Kalendarz treningów";document.getElementById("headerSub").textContent=`Plan ${TOTAL_WEEKS} tygodni · start 12.05.2026`}document.getElementById("progressBar").style.width=`${state.view==="train"&&state.mode==="session"?sessionProgress(sess):overallProgress()}%`;if(state.view==="train"&&state.mode==="calendar")renderCalendar();if(state.view==="train"&&state.mode==="session")renderSession();if(state.view==="plan")renderPlan();if(state.view==="measure")renderMeasurements();if(state.view==="history")renderHistory()}
 function overallProgress(){const s=schedule();return Math.round(s.filter(x=>sessionDone(x)).length/s.length*100)}
 function renderCalendar(){const s=schedule(),done=s.filter(x=>sessionStatus(x)==="done").length,missed=s.filter(x=>sessionStatus(x)==="missed").length,left=s.length-done-missed;let html=`<div class="summary"><div class="kpi"><strong>${done}</strong><span class="subtitle">zrobione</span></div><div class="kpi"><strong>${missed}</strong><span class="subtitle">pominięte</span></div><div class="kpi"><strong>${left}</strong><span class="subtitle">przed Tobą</span></div></div><div class="legend"><span>🟡 do zrobienia</span><span>🟢 zrobiony</span><span>🔴 po dacie</span><span>🔵 przyszły</span></div><div class="calendar">`;for(let week=1;week<=TOTAL_WEEKS;week++){const items=s.filter(x=>x.week===week);html+=`<section class="weekCard"><div class="weekHead"><strong>Tydzień ${week}</strong><span class="subtitle">${formatPL(items[0].date)} – ${formatPL(items[3].date)}</span></div><div class="days">`;for(const it of items){const st=sessionStatus(it),prog=sessionProgress(it),wo=workout(it.workoutId);html+=`<button class="dayBtn status-${st}" onclick='setSession(${JSON.stringify(it)})'><div class="date">${it.dow} ${formatPL(it.date).replace(/^...,\s*/,"")}</div><div class="name">${wo.name.replace(" TRENING","")}</div><div class="subtitle">${statusLabel(st)}</div><div class="bar"><div style="width:${prog}%"></div></div><div class="subtitle">${prog}%</div></button>`}html+=`</div></section>`}document.getElementById("view").innerHTML=html+`</div>`}
 function renderSession(){
-const sess=currentSession(),w=workout(),ex=exercise(),sets=setsFor(ex),video=videoForExercise(ex.name);
+const sess=currentSession(),w=workout(),ex=exercise(),sets=setsFor(ex),video=VIDEOS[ex.name];
 if(sessionDone()){
   document.getElementById("view").innerHTML=finishScreenHTML(sess);
   return;
@@ -208,9 +204,8 @@ function finishScreenHTML(sess){
    const lines=sets.map(s=>`${s.kg||"-"} kg × ${s.reps||"-"}${s.rpe?` · RPE ${s.rpe}`:""}`).join(" / ");
    return `<div class="doneItem"><strong>✅ ${esc(ex.name)}</strong><div class="meta">${esc(lines||"zaliczone")}</div></div>`;
  }).join("");
- return `<section class="finishScreen"><div class="finishHero"><div class="bananaBunch">🍌🍌🍌</div><h2>Dobra robota!</h2><div class="subtitle">Trening wykonany. Oto co zrobiłeś:</div></div><div class="doneList">${items}</div><div class="actions" style="margin-top:18px"><button class="btn secondary" onclick="exitSession()">Kalendarz</button><button class="btn good" onclick="syncCurrentWorkout()">Zapisz do arkusza</button></div></section>`;
+ return `<section class="finishScreen"><div class="finishHero"><div class="bananaBunch">🍌🍌🍌</div><h2>Dobra robota!</h2><div class="subtitle">Trening wykonany. Oto co zrobiłeś:</div></div><div class="doneList">${items}</div><div class="actions" style="margin-top:18px"><button class="btn secondary" onclick="exitSession()">Kalendarz</button><button class="btn good" onclick="showToast('✅ Tu później zapis do arkusza')">Zapisz do arkusza</button></div></section>`;
 }
-function videoForExercise(name){if(VIDEOS[name])return VIDEOS[name];const key=normText(name);for(const [n,url] of Object.entries(VIDEOS)){if(normText(n)===key)return url;}return null}
 function videoBlock(name,url){const open=!!state.videoOpen[name],id=youtubeId(url);return `<div class="videoToggle"><button class="btn secondary full" onclick="toggleVideo('${esc(name)}')">${open?"Ukryj film":"▶ Pokaż film instruktażowy"}</button>${open&&id?`<div class="embed"><iframe src="https://www.youtube-nocookie.com/embed/${esc(id)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`:""}</div>`}
 function youtubeId(url){let s=String(url),m=s.match(/youtu\.be\/([^?&]+)/);if(m)return m[1];m=s.match(/[?&]v=([^?&]+)/);if(m)return m[1];return null}
 function firstUndoneIndex(sets){const i=sets.findIndex(s=>!s.done);return i<0?sets.length:i}
@@ -225,13 +220,7 @@ const key=`${todayKey()}__W${state.week}`,vals=state.measurements[key]||{};
 const entries=Object.entries(state.measurements).sort().reverse();
 document.getElementById("view").innerHTML=`<section class="card"><h2>Pomiary i waga</h2><div class="subtitle" style="margin-bottom:14px">Data ${todayKey()} · tydzień ${state.week}</div>${MEASUREMENTS.map(m=>`<label class="measure-row"><span>${m}</span><input inputmode="decimal" placeholder="${m==="Waga"?"kg":"cm"}" value="${esc(vals[m]||"")}" oninput="setMeasurement('${m}',this.value)"></label>`).join("")}<button class="btn good full" onclick="saveMeasurements()">Zapisz pomiary</button></section><section class="card" style="margin-top:12px"><h2>Poprzednie pomiary</h2>${entries.length?`<div class="historyTable"><table><thead><tr><th>Data</th>${MEASUREMENTS.map(m=>`<th>${m}</th>`).join("")}</tr></thead><tbody>${entries.map(([k,v])=>`<tr><td>${esc(k.split("__W")[0])}</td>${MEASUREMENTS.map(m=>`<td>${esc(v[m]||"-")}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`:`<div class="empty">Brak poprzednich pomiarów.</div>`}</section>`
 }
-async function saveMeasurements(){
- save();
- const key=`${todayKey()}__W${state.week}`;
- const values=state.measurements[key]||{};
- const payload={action:"saveMeasurements",clientId:"gabriel",date:todayKey(),week:state.week,values};
- await apiPost(payload,"✅ Pomiary zapisane do arkusza");
-}
+function saveMeasurements(){save();showToast("✅ Pomiary zapisane lokalnie")}
 function latestSessionWithLogs(){
  const keys=Object.keys(state.logs).sort().reverse();
  if(!keys.length)return null;
@@ -253,72 +242,8 @@ function renderHistory(){
    if(!sets.length)return;
    html+=`<div class="summaryBlock"><strong>${esc(ex.name)}</strong>${sets.map((s,i)=>`<div class="summaryLine"><span>${i+1}. ${esc(s.note)}</span><span>${esc(s.kg||"-")} kg × ${esc(s.reps||"-")} ${s.rpe?`RPE ${esc(s.rpe)}`:""}</span></div>`).join("")}</div>`
  });
- html+=`<div class="actions"><button class="btn secondary" onclick="setSession(${JSON.stringify(sess)})">Wróć do treningu</button><button class="btn good" onclick="syncCurrentWorkout(sess)">Zapisz do arkusza</button></div></section>`;
+ html+=`<div class="actions"><button class="btn secondary" onclick="setSession(${JSON.stringify(sess)})">Wróć do treningu</button><button class="btn good" onclick="showToast('✅ Tu później zapis do arkusza')">Zapisz do arkusza</button></div></section>`;
  document.getElementById("view").innerHTML=html
-}
-async function apiGetPlan(){
- try{
-   apiStatus="Łączenie z arkuszem…"; apiStatusKind="loading"; render();
-   const res=await fetch(`${API_URL}?action=getPlan&ts=${Date.now()}`);
-   if(!res.ok) throw new Error(`HTTP ${res.status}`);
-   const data=await res.json();
-   if(!data.ok) throw new Error(data.error||"Backend zwrócił błąd");
-   if(Array.isArray(data.workouts)&&data.workouts.length){
-     PLAN=data.workouts.map(w=>({...w, exercises:(w.exercises||[]).map(ex=>({
-       ...ex,
-       sets: ex.sets || 1,
-       reps: ex.reps || "-",
-       rest: ex.rest || "-",
-       notes: ex.notes || ""
-     }))}));
-   }
-   if(data.videos&&typeof data.videos==="object") VIDEOS={...VIDEOS,...data.videos};
-   if(Array.isArray(data.rpe)&&data.rpe.length) RPE=data.rpe.map(x=>[x.rpe,x.description,x.reserve||""]);
-   TOTAL_WEEKS=Math.max(TOTAL_WEEKS,inferTotalWeeksFromPlan());
-   apiStatus="Połączono z arkuszem"; apiStatusKind="ok";
- }catch(err){
-   console.error(err);
-   apiStatus="Offline/mock: nie udało się pobrać arkusza"; apiStatusKind="err";
- }finally{render();}
-}
-function inferTotalWeeksFromPlan(){return 11}
-function buildWorkoutPayload(sess=currentSession()){
- const w=workout(sess.workoutId);
- return {
-   action:"saveWorkoutLog",
-   clientId:"gabriel",
-   session:{sessionId:sess.id,workoutDate:sess.date,week:sess.week,workoutId:w.id,workoutName:w.name},
-   exercises:w.exercises.map(ex=>({
-     no:ex.no,
-     name:ex.name,
-     sets:(state.logs[`${sess.date}__${sess.id}__E${ex.no}`]||[]).map((s,i)=>({
-       setNo:i+1,
-       plannedLabel:s.note||`Seria ${i+1}`,
-       kg:s.kg||"",
-       reps:s.reps||"",
-       rpe:s.rpe||"",
-       done:!!s.done,
-       note:s.freeNote||""
-     }))
-   }))
- };
-}
-async function syncCurrentWorkout(sess=currentSession()){
- await apiPost(buildWorkoutPayload(sess),"✅ Trening zapisany do arkusza");
-}
-async function apiPost(payload,successText){
- try{
-   showToast("Zapisywanie do arkusza…");
-   const res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)});
-   const data=await res.json();
-   if(!res.ok||!data.ok) throw new Error(data.error||`HTTP ${res.status}`);
-   apiStatus="Zapis działa"; apiStatusKind="ok"; showToast(successText||"✅ Zapisano"); render();
-   return data;
- }catch(err){
-   console.error(err);
-   apiStatus="Błąd zapisu do arkusza"; apiStatusKind="err"; showToast("❌ Nie udało się zapisać do arkusza"); render();
-   return null;
- }
 }
 function setView(v){state.view=v;if(v!=="train")state.mode="calendar";render()} function exitSession(){state.mode="calendar";clearTimer(false);render()}
 function updateSet(id,field,value){const s=setsFor().find(x=>x.id===id);if(s)s[field]=value;save()}
@@ -369,7 +294,6 @@ function csvEscape(v){const s=String(v??"");return /[";\n]/.test(s)?`"${s.replac
 function exportWorkoutCSV(){const rows=[["date","session_id","week","workout","exercise_no","exercise","set","planned","kg","reps","rpe","done","note"]];Object.entries(state.logs).forEach(([key,sets])=>{const[date,sid,ePart]=key.split("__"),sess=schedule().find(s=>s.id===sid),wo=workout(sess?.workoutId||1),exNo=(ePart||"").replace("E",""),ex=wo.exercises.find(x=>String(x.no)===String(exNo));sets.forEach((s,i)=>rows.push([date,sid,sess?.week||"",wo.name,exNo,ex?.name||"",i+1,s.note||"",s.kg,s.reps,s.rpe,s.done?1:0,s.freeNote||""]))});download(`workout-log-${todayKey()}.csv`,rows.map(r=>r.map(csvEscape).join(";")).join("\n"))}
 function exportMeasurementsCSV(){const rows=[["date","week",...MEASUREMENTS]];Object.entries(state.measurements).forEach(([key,vals])=>{const[date,w]=key.split("__W");rows.push([date,w,...MEASUREMENTS.map(m=>vals[m]||"")])});download(`measurements-${todayKey()}.csv`,rows.map(r=>r.map(csvEscape).join(";")).join("\n"))}
 render();
-apiGetPlan();
 </script>
 </body>
 </html>
