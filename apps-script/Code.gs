@@ -5,6 +5,7 @@
   - Plan = readonly coach workflow
   - WG = readonly progression/helper sheet
   - APP_LOG / APP_MEASUREMENTS / APP_STATUS = app writes
+  - TRENER_* = human-readable trainer views generated from APP_*
 */
 
 const MP = {
@@ -19,7 +20,7 @@ const MP = {
   MEASUREMENTS_SHEET: 'APP_MEASUREMENTS',
   STATUS_SHEET: 'APP_STATUS',
   TIMEZONE: 'Europe/Warsaw',
-  VERSION: '0.1.2'
+  VERSION: '0.1.3'
 };
 
 const LOG_HEADERS = [
@@ -213,8 +214,9 @@ function saveWorkoutLog_(payload) {
   });
 
   if (rows.length) sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
-  saveStatus_(payload);
-  return { ok: true, rowsWritten: rows.length, timestamp, timezone: MP.TIMEZONE, planId };
+  saveStatus_(payload, false);
+  refreshTrainerViews_();
+  return { ok: true, rowsWritten: rows.length, timestamp, timezone: MP.TIMEZONE, planId, trainerViewsRefreshed: true };
 }
 
 function saveMeasurements_(payload) {
@@ -230,10 +232,11 @@ function saveMeasurements_(payload) {
     values.Klatka || values.klatka || '', values.Biceps || values.biceps || '', values.Szyja || values.szyja || '', values.Waga || values.waga || '',
     JSON.stringify(payload), planId
   ]);
-  return { ok: true, rowsWritten: 1, timestamp, timezone: MP.TIMEZONE, planId };
+  refreshTrainerViews_();
+  return { ok: true, rowsWritten: 1, timestamp, timezone: MP.TIMEZONE, planId, trainerViewsRefreshed: true };
 }
 
-function saveStatus_(payload) {
+function saveStatus_(payload, shouldRefreshTrainerViews) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(MP.STATUS_SHEET);
   if (!sheet) return { ok: false, error: 'Missing APP_STATUS' };
@@ -247,7 +250,8 @@ function saveStatus_(payload) {
     session.week || payload.week || '', session.workoutId || payload.workoutId || '', completed === exercises.length ? 'done' : 'partial',
     completed, exercises.length, JSON.stringify(payload), planId
   ]);
-  return { ok: true, timestamp, timezone: MP.TIMEZONE, planId };
+  if (shouldRefreshTrainerViews !== false) refreshTrainerViews_();
+  return { ok: true, timestamp, timezone: MP.TIMEZONE, planId, trainerViewsRefreshed: shouldRefreshTrainerViews !== false };
 }
 
 function getMeasurements_() {
@@ -259,6 +263,16 @@ function getMeasurements_() {
   const headers = values[0];
   const rows = values.slice(1).map(row => objectFromRow_(headers, row));
   return { ok: true, measurements: rows };
+}
+
+function refreshTrainerViews_() {
+  if (typeof rebuildTrainerViews !== 'function') return { ok: false, skipped: true, reason: 'TrainerViews.gs not installed' };
+  try {
+    return rebuildTrainerViews();
+  } catch (err) {
+    console.error('Trainer views refresh failed: ' + err);
+    return { ok: false, error: String(err) };
+  }
 }
 
 function getPlanId_() {
