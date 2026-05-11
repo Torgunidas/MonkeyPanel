@@ -1,14 +1,10 @@
 /*
   MonkeyPanel Trainer Views
 
-  This file is meant to be added next to Code.gs in Apps Script.
+  Human-readable trainer sheets generated from APP_* raw data.
 
-  It creates human-readable trainer sheets from APP_* raw data:
-  - TRENER_PODSUMOWANIE
-  - TRENER_DZIENNIK
-  - TRENER_POMIARY
-
-  APP_* sheets remain machine-readable raw storage.
+  APP_* = machine-readable storage.
+  TRENER_* = coach-readable views.
 */
 
 const TRAINER = {
@@ -17,23 +13,24 @@ const TRAINER = {
   MEASUREMENTS_SHEET: 'TRENER_POMIARY'
 };
 
+const TRAINER_DIARY_HEADERS = [
+  'Data', 'Tydz.', 'Trening', 'Status', 'Nr', 'Ćwiczenie',
+  'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8',
+  'RPE', 'Notatki', 'Zapisano', 'Plan ID'
+];
+
+const TRAINER_MEASUREMENT_HEADERS = [
+  'Data pomiaru', 'Tydzień', 'Waga', 'Udo', 'Dupa', 'Brzuch', 'Klatka', 'Biceps', 'Szyja', 'Zmiana wagi', 'Zapisano', 'Plan ID'
+];
+
 function setupTrainerViews() {
   setupMonkeyPanelSheets();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  ensureTrainerSheet_(ss, TRAINER.SUMMARY_SHEET, [
-    ['Sekcja', 'Wartość', 'Opis']
-  ]);
+  ensureTrainerSheet_(ss, TRAINER.SUMMARY_SHEET, [['Sekcja', 'Wartość', 'Opis']]);
+  ensureTrainerSheet_(ss, TRAINER.DIARY_SHEET, [TRAINER_DIARY_HEADERS]);
+  ensureTrainerSheet_(ss, TRAINER.MEASUREMENTS_SHEET, [TRAINER_MEASUREMENT_HEADERS]);
 
-  ensureTrainerSheet_(ss, TRAINER.DIARY_SHEET, [[
-    'Data treningu', 'Tydzień', 'Trening', 'Status', 'Ćwiczenie', 'Serie / wynik', 'RPE', 'Notatki', 'Zapisano', 'Plan ID'
-  ]]);
-
-  ensureTrainerSheet_(ss, TRAINER.MEASUREMENTS_SHEET, [[
-    'Data pomiaru', 'Tydzień', 'Waga', 'Udo', 'Dupa', 'Brzuch', 'Klatka', 'Biceps', 'Szyja', 'Zmiana wagi', 'Zapisano', 'Plan ID'
-  ]]);
-
-  formatTrainerSheets_();
   rebuildTrainerViews();
   return { ok: true, message: 'Trainer views created/rebuilt' };
 }
@@ -83,7 +80,7 @@ function clearAppDataAfterArchive() {
 
 function rebuildTrainerDiary_(ss, logRows, statusRows) {
   const sheet = ss.getSheetByName(TRAINER.DIARY_SHEET) || ss.insertSheet(TRAINER.DIARY_SHEET);
-  clearSheetKeepHeader_(sheet, ['Data treningu', 'Tydzień', 'Trening', 'Status', 'Ćwiczenie', 'Serie / wynik', 'RPE', 'Notatki', 'Zapisano', 'Plan ID']);
+  clearSheetKeepHeader_(sheet, TRAINER_DIARY_HEADERS);
 
   const statusBySession = {};
   statusRows.forEach(row => {
@@ -95,6 +92,7 @@ function rebuildTrainerDiary_(ss, logRows, statusRows) {
   logRows.forEach(row => {
     const sessionKey = row.session_id || [row.workout_date, row.week, row.workout_id].join('|');
     const exerciseKey = [sessionKey, row.exercise_no, row.exercise_name].join('|');
+
     if (!grouped[exerciseKey]) {
       grouped[exerciseKey] = {
         sessionKey,
@@ -111,36 +109,46 @@ function rebuildTrainerDiary_(ss, logRows, statusRows) {
       };
     }
 
-    const kg = row.kg || '-';
-    const reps = row.reps || '-';
-    const label = row.planned_label || ('Seria ' + (row.set_no || ''));
-    grouped[exerciseKey].sets.push(label + ': ' + kg + ' kg × ' + reps);
+    const setNo = parseInt(row.set_no || grouped[exerciseKey].sets.length + 1, 10);
+    const setIndex = Number.isFinite(setNo) && setNo > 0 ? setNo - 1 : grouped[exerciseKey].sets.length;
+    grouped[exerciseKey].sets[setIndex] = compactSet_(row.kg, row.reps);
+
     if (row.rpe) grouped[exerciseKey].rpes.push(row.rpe);
     if (row.note) grouped[exerciseKey].notes.push(row.note);
     if (row.timestamp) grouped[exerciseKey].timestamp = row.timestamp;
+    if (row.plan_id) grouped[exerciseKey].planId = row.plan_id;
   });
 
   const out = Object.values(grouped)
-    .sort((a, b) => String(a.workoutDate).localeCompare(String(b.workoutDate)) || Number(a.week) - Number(b.week) || String(a.exerciseNo).localeCompare(String(b.exerciseNo), 'pl', { numeric: true }))
-    .map(g => [
-      g.workoutDate,
-      g.week,
-      g.workoutName,
-      statusBySession[g.sessionKey] || '',
-      (g.exerciseNo ? g.exerciseNo + '. ' : '') + g.exerciseName,
-      g.sets.join(' / '),
-      unique_(g.rpes).join(', '),
-      unique_(g.notes).join(' | '),
-      g.timestamp,
-      g.planId
-    ]);
+    .sort((a, b) =>
+      String(a.workoutDate).localeCompare(String(b.workoutDate)) ||
+      Number(a.week || 0) - Number(b.week || 0) ||
+      String(a.workoutName).localeCompare(String(b.workoutName), 'pl', { numeric: true }) ||
+      String(a.exerciseNo).localeCompare(String(b.exerciseNo), 'pl', { numeric: true })
+    )
+    .map(g => {
+      const setCols = Array.from({ length: 8 }, (_, i) => g.sets[i] || '');
+      return [
+        g.workoutDate,
+        g.week,
+        shortWorkoutName_(g.workoutName),
+        statusLabel_(statusBySession[g.sessionKey] || ''),
+        g.exerciseNo,
+        g.exerciseName,
+        ...setCols,
+        unique_(g.rpes).join(', '),
+        unique_(g.notes).join(' | '),
+        g.timestamp,
+        g.planId
+      ];
+    });
 
   if (out.length) sheet.getRange(2, 1, out.length, out[0].length).setValues(out);
 }
 
 function rebuildTrainerMeasurements_(ss, measurementRows) {
   const sheet = ss.getSheetByName(TRAINER.MEASUREMENTS_SHEET) || ss.insertSheet(TRAINER.MEASUREMENTS_SHEET);
-  clearSheetKeepHeader_(sheet, ['Data pomiaru', 'Tydzień', 'Waga', 'Udo', 'Dupa', 'Brzuch', 'Klatka', 'Biceps', 'Szyja', 'Zmiana wagi', 'Zapisano', 'Plan ID']);
+  clearSheetKeepHeader_(sheet, TRAINER_MEASUREMENT_HEADERS);
 
   const rows = measurementRows
     .sort((a, b) => String(a.measurement_date).localeCompare(String(b.measurement_date)))
@@ -184,17 +192,17 @@ function rebuildTrainerSummary_(ss, logRows, measurementRows, statusRows) {
     ['Plan ID', planId, 'Historia jest przypisana do konkretnego planu'],
     ['Nazwa planu', getConfigValue_('plan_name', MP.PLAN_NAME), ''],
     ['Status planu', getConfigValue_('plan_status', MP.PLAN_STATUS), 'active / archived'],
-    ['Ostatnia przebudowa widoków', nowLocal_(), 'Uruchom rebuildTrainerViews(), aby odświeżyć ręcznie'],
+    ['Ostatnia przebudowa widoków', nowLocal_(), 'Widoki odświeżają się automatycznie po zapisie z apki'],
     ['', '', ''],
     ['Treningi zapisane', uniqueSessions, 'Liczba unikalnych sesji w APP_STATUS'],
     ['Treningi ukończone', completed, 'Status done'],
     ['Treningi częściowe', partial, 'Status partial'],
-    ['Ostatni trening', lastStatus ? ((lastStatus.workout_date || '') + ' · tydz. ' + (lastStatus.week || '') + ' · ' + (lastStatus.workout_id || '')) : 'brak', ''],
+    ['Ostatni trening', lastStatus ? ((lastStatus.workout_date || '') + ' · tydz. ' + (lastStatus.week || '') + ' · trening ' + (lastStatus.workout_id || '')) : 'brak', ''],
     ['Braki RPE', missingRpe, 'Serie wykonane bez wpisanego RPE'],
     ['Ostatni pomiar', lastMeasurement ? ((lastMeasurement.measurement_date || '') + ' · waga ' + (lastMeasurement.Waga || '-')) : 'brak', ''],
     ['', '', ''],
-    ['Co czytać?', 'TRENER_DZIENNIK', 'Czytelny dziennik wykonanych ćwiczeń'],
-    ['Co czytać?', 'TRENER_POMIARY', 'Czytelna historia pomiarów'],
+    ['Co czytać?', 'TRENER_DZIENNIK', 'Dziennik ćwiczeń: S1–S8 w osobnych kolumnach'],
+    ['Co czytać?', 'TRENER_POMIARY', 'Historia pomiarów'],
     ['Czego nie edytować?', 'APP_*', 'Surowe dane aplikacji']
   ];
 
@@ -206,26 +214,81 @@ function rebuildTrainerSummary_(ss, logRows, measurementRows, statusRows) {
 function ensureTrainerSheet_(ss, name, headers) {
   let sheet = ss.getSheetByName(name);
   if (!sheet) sheet = ss.insertSheet(name);
-  if (sheet.getLastRow() === 0) {
-    sheet.getRange(1, 1, headers.length, headers[0].length).setValues(headers);
-  }
+  if (sheet.getLastRow() === 0) sheet.getRange(1, 1, headers.length, headers[0].length).setValues(headers);
   sheet.getRange(1, 1, 1, sheet.getLastColumn()).setFontWeight('bold');
   return sheet;
 }
 
 function formatTrainerSheets_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  [TRAINER.DIARY_SHEET, TRAINER.MEASUREMENTS_SHEET, TRAINER.SUMMARY_SHEET].forEach(name => {
-    const sheet = ss.getSheetByName(name);
-    if (!sheet) return;
-    const lastCol = Math.max(1, sheet.getLastColumn());
-    sheet.setFrozenRows(1);
-    sheet.getRange(1, 1, 1, lastCol).setFontWeight('bold').setBackground('#d9ead3');
-    sheet.autoResizeColumns(1, lastCol);
-    if (sheet.getLastRow() > 1) {
-      sheet.getRange(2, 1, sheet.getLastRow() - 1, lastCol).setWrap(true).setVerticalAlignment('top');
+
+  const diary = ss.getSheetByName(TRAINER.DIARY_SHEET);
+  if (diary) {
+    basicSheetFormat_(diary);
+    diary.setColumnWidths(1, 1, 95);   // Data
+    diary.setColumnWidths(2, 1, 55);   // Tydz.
+    diary.setColumnWidths(3, 1, 95);   // Trening
+    diary.setColumnWidths(4, 1, 80);   // Status
+    diary.setColumnWidths(5, 1, 55);   // Nr
+    diary.setColumnWidths(6, 1, 260);  // Ćwiczenie
+    diary.setColumnWidths(7, 8, 78);   // S1-S8
+    diary.setColumnWidths(15, 1, 80);  // RPE
+    diary.setColumnWidths(16, 1, 220); // Notatki
+    diary.setColumnWidths(17, 1, 145); // Zapisano
+    diary.setColumnWidths(18, 1, 170); // Plan ID
+    if (diary.getLastRow() > 1) {
+      diary.getRange(2, 7, diary.getLastRow() - 1, 8).setHorizontalAlignment('center');
+      diary.getRange(2, 15, diary.getLastRow() - 1, 1).setHorizontalAlignment('center');
     }
-  });
+  }
+
+  const meas = ss.getSheetByName(TRAINER.MEASUREMENTS_SHEET);
+  if (meas) {
+    basicSheetFormat_(meas);
+    meas.autoResizeColumns(1, Math.max(1, meas.getLastColumn()));
+  }
+
+  const summary = ss.getSheetByName(TRAINER.SUMMARY_SHEET);
+  if (summary) {
+    basicSheetFormat_(summary);
+    summary.setColumnWidths(1, 1, 190);
+    summary.setColumnWidths(2, 1, 220);
+    summary.setColumnWidths(3, 1, 360);
+  }
+}
+
+function basicSheetFormat_(sheet) {
+  const lastCol = Math.max(1, sheet.getLastColumn());
+  sheet.setFrozenRows(1);
+  sheet.getRange(1, 1, 1, lastCol).setFontWeight('bold').setBackground('#d9ead3');
+  if (sheet.getLastRow() > 1) {
+    sheet.getRange(2, 1, sheet.getLastRow() - 1, lastCol).setWrap(true).setVerticalAlignment('middle');
+  }
+}
+
+function compactSet_(kg, reps) {
+  const cleanKg = cleanValue_(kg);
+  const cleanReps = cleanValue_(reps);
+  if (!cleanKg && !cleanReps) return '';
+  if (cleanKg && cleanReps) return cleanKg + '×' + cleanReps;
+  if (cleanKg) return cleanKg + ' kg';
+  return cleanReps;
+}
+
+function cleanValue_(value) {
+  const s = String(value || '').trim();
+  if (!s || s === '-') return '';
+  return s.replace(/\s+/g, ' ');
+}
+
+function shortWorkoutName_(name) {
+  return String(name || '').replace(/\s*TRENING\s*/i, '').trim() || name || '';
+}
+
+function statusLabel_(status) {
+  if (status === 'done') return 'wykonany';
+  if (status === 'partial') return 'częściowy';
+  return status || '';
 }
 
 function readObjects_(sheet) {
