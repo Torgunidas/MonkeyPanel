@@ -201,6 +201,22 @@ function saveWorkoutLog_(payload) {
   const planId = payload.planId || getPlanId_();
   const session = payload.session || {};
   const exercises = payload.exercises || [];
+  const sessionId = session.sessionId || payload.sessionId || '';
+  const incomingTotal = exercises.length;
+  const incomingCompleted = exercises.filter(ex => Array.isArray(ex.sets) && ex.sets.length > 0 && ex.sets.every(s => s.done !== false)).length;
+
+  // Safety: do not let an older/stale browser overwrite a completed workout with partial data.
+  const existingStatus = sessionId ? latestStatusForSession_(ss, planId, sessionId) : null;
+  if (existingStatus && existingStatus.status === 'done' && incomingCompleted < incomingTotal) {
+    return { ok: false, error: 'Refusing to overwrite completed session with partial payload', sessionId, incomingCompleted, incomingTotal };
+  }
+
+  // Alpha safety: one current record set per session. This prevents old partial saves
+  // from mixing with a later complete save and confusing MonkeyPanel / TRENER_* views.
+  if (sessionId) {
+    deleteRowsMatching_(sheet, row => samePlanSession_(row, planId, sessionId));
+    deleteRowsMatching_(ss.getSheetByName(MP.STATUS_SHEET), row => samePlanSession_(row, planId, sessionId));
+  }
 
   exercises.forEach(ex => {
     const sets = ex.sets || [];
@@ -243,9 +259,13 @@ function saveStatus_(payload, shouldRefreshTrainerViews) {
   if (!sheet) return { ok: false, error: 'Missing APP_STATUS' };
   const session = payload.session || {};
   const exercises = payload.exercises || [];
-  const completed = exercises.filter(ex => (ex.sets || []).every(s => s.done !== false)).length;
+  const completed = exercises.filter(ex => Array.isArray(ex.sets) && ex.sets.length > 0 && ex.sets.every(s => s.done !== false)).length;
   const timestamp = nowLocal_();
   const planId = payload.planId || getPlanId_();
+  const sessionId = session.sessionId || payload.sessionId || '';
+  if (sessionId && shouldRefreshTrainerViews !== false) {
+    deleteRowsMatching_(sheet, row => samePlanSession_(row, planId, sessionId));
+  }
   sheet.appendRow([
     timestamp, payload.clientId || MP.CLIENT_ID, session.sessionId || payload.sessionId || '', session.workoutDate || payload.workoutDate || '',
     session.week || payload.week || '', session.workoutId || payload.workoutId || '', completed === exercises.length ? 'done' : 'partial',
@@ -255,20 +275,55 @@ function saveStatus_(payload, shouldRefreshTrainerViews) {
   return { ok: true, timestamp, timezone: MP.TIMEZONE, planId, trainerViewsRefreshed: shouldRefreshTrainerViews !== false };
 }
 
+function latestStatusForSession_(ss, planId, sessionId) {
+  const sheet = ss.getSheetByName(MP.STATUS_SHEET);
+  const rows = readRowsForPlan_(sheet, planId).filter(row => row.session_id === sessionId);
+  if (!rows.length) return null;
+  rows.sort((a, b) => String(a.timestamp || '').localeCompare(String(b.timestamp || '')));
+  return rows[rows.length - 1];
+}
+
 function getWorkoutLog_(e) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(MP.LOG_SHEET);
-  if (!sheet || sheet.getLastRow() < 2) return { ok: true, logs: [] };
-
   const requestedPlanId = (e && e.parameter && e.parameter.planId) || getPlanId_();
+
+  const logSheet = ss.getSheetByName(MP.LOG_SHEET);
+  const logs = readRowsForPlan_(logSheet, requestedPlanId);
+
+  const statusSheet = ss.getSheetByName(MP.STATUS_SHEET);
+  const statuses = readRowsForPlan_(statusSheet, requestedPlanId);
+
+  return { ok: true, logs, statuses, planId: requestedPlanId };
+}
+
+function readRowsForPlan_(sheet, requestedPlanId) {
+  if (!sheet || sheet.getLastRow() < 2) return [];
   const values = sheet.getDataRange().getDisplayValues();
   const headers = values[0];
-  const rows = values.slice(1)
+  return values.slice(1)
     .filter(row => row.some(Boolean))
     .map(row => objectFromRow_(headers, row))
     .filter(row => !requestedPlanId || !row.plan_id || row.plan_id === requestedPlanId);
+}
 
-  return { ok: true, logs: rows, planId: requestedPlanId };
+function samePlanSession_(row, planId, sessionId) {
+  const rowPlanId = row.plan_id || planId;
+  return rowPlanId === planId && row.session_id === sessionId;
+}
+
+function deleteRowsMatching_(sheet, predicate) {
+  if (!sheet || sheet.getLastRow() < 2) return 0;
+  const values = sheet.getDataRange().getDisplayValues();
+  const headers = values[0];
+  let deleted = 0;
+  for (let i = values.length - 1; i >= 1; i--) {
+    const obj = objectFromRow_(headers, values[i]);
+    if (predicate(obj)) {
+      sheet.deleteRow(i + 1);
+      deleted++;
+    }
+  }
+  return deleted;
 }
 
 function getMeasurements_() {
