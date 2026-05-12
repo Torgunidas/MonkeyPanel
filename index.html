@@ -154,6 +154,27 @@ function pruneLocalCacheBeforeServerHydrate(serverLogs,serverStatuses){
   });
   save();
 }
+
+function pruneCompletedLocalSessionsBeforeBackend(){
+  // Backend/arkusz is the authority for completed sessions.
+  // LocalStorage may keep only unfinished drafts. This runs even before APP_LOG is fetched,
+  // so stale completed workouts from Chrome localStorage cannot pretend to be sheet data.
+  const bases=new Set();
+  Object.keys(state.logs||{}).forEach(key=>{
+    if(!key.startsWith(planId()+"__"))return;
+    const base=sessionBaseFromLogKey(key);
+    if(base)bases.add(base);
+  });
+  bases.forEach(base=>{
+    if(localSessionCompleteFromBase(base)){
+      Object.keys(state.logs||{}).forEach(key=>{
+        if(key.startsWith(base+"__E"))delete state.logs[key];
+      });
+    }
+  });
+  save();
+}
+
 async function apiGetWorkoutLog(){
   try{
     const res=await fetch(`${API_URL}?action=getWorkoutLog&planId=${encodeURIComponent(planId())}&ts=${Date.now()}`);
@@ -170,7 +191,7 @@ async function apiGetWorkoutLog(){
 
 async function apiGetPlan(){try{apiStatus="Łączenie z arkuszem…";apiStatusKind="loading";render();const res=await fetch(`${API_URL}?action=getPlan&ts=${Date.now()}`);const data=await res.json();if(!data.ok)throw new Error(data.error||"Błąd backendu");CURRENT_PLAN={planId:data.planId||"unknown_plan",planName:data.planName||data.planId||"Plan",planStatus:data.planStatus||"active"};if(Array.isArray(data.workouts)&&data.workouts.length)PLAN=data.workouts;if(data.videos)VIDEOS=data.videos;if(Array.isArray(data.rpe)&&data.rpe.length)RPE=data.rpe.map(x=>[x.rpe,x.description,x.reserve||""]);apiStatus=`Połączono z arkuszem · ${CURRENT_PLAN.planId}`;apiStatusKind="ok"}catch(e){console.error(e);apiStatus="Offline/mock: nie udało się pobrać arkusza";apiStatusKind="err"}finally{render()}}
 async function apiGetMeasurements(){try{const res=await fetch(`${API_URL}?action=getMeasurements&ts=${Date.now()}`);const data=await res.json();if(!data.ok||!Array.isArray(data.measurements))return;Object.keys(state.measurements||{}).forEach(k=>{if(k.startsWith(planId()+"__"))delete state.measurements[k]});data.measurements.forEach(r=>{const pid=r.plan_id||planId();if(pid!==planId())return;const key=`${pid}__${r.measurement_date||r.date||todayKey()}__W${r.week||""}`;state.measurements[key]={};MEASUREMENTS.forEach(m=>{if(r[m])state.measurements[key][m]=r[m]})});save()}catch(e){console.warn(e)}}
-apiGetPlan().then(()=>apiGetWorkoutLog()).then(()=>apiGetMeasurements());
+apiGetPlan().then(()=>{pruneCompletedLocalSessionsBeforeBackend();render();return apiGetWorkoutLog()}).then(()=>apiGetMeasurements());
 </script>
 </body>
 </html>
