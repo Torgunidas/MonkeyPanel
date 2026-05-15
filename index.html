@@ -17,7 +17,108 @@
 const FRONTEND_VERSION="v0.2.5-performed-date";
 const API_URL="https://script.google.com/macros/s/AKfycbx6AQ6v382RXmr6YdisKN5YgKSyTZ35pOE-tR0jhh827Dxvp3EfsT1fZnm31Hu98hY/exec";
 const URL_PARAMS=new URLSearchParams(location.search);
-const CLIENT_ID=(URL_PARAMS.get("client")||URL_PARAMS.get("clientId")||"gabriel").trim().toLowerCase();
+const CLIENT_ID=(URL_PARAMS.get("client")||URL_PARAMS.get("clientId")||"").trim().toLowerCase();
+
+if(!CLIENT_ID){
+  renderClientSelector();
+  throw new Error("CLIENT_SELECTOR");
+}
+
+function renderClientSelector(){
+
+  document.body.innerHTML = `
+  <style>
+    body{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:100vh;
+      padding:24px;
+    }
+
+    .selector{
+      width:min(520px,100%);
+      background:#141414;
+      border:1px solid #303030;
+      border-radius:28px;
+      padding:24px;
+    }
+
+    .selector h1{
+      margin:0 0 8px;
+      font-size:32px;
+    }
+
+    .selector p{
+      color:#a1a1aa;
+      margin-bottom:20px;
+      line-height:1.5;
+    }
+
+    .clientBtn{
+      width:100%;
+      margin-bottom:12px;
+      border:1px solid #303030;
+      background:#202020;
+      color:#f4f4f5;
+      border-radius:20px;
+      padding:18px;
+      text-align:left;
+      font-size:18px;
+      font-weight:800;
+      cursor:pointer;
+    }
+
+    .clientBtn small{
+      display:block;
+      margin-top:4px;
+      color:#a1a1aa;
+      font-size:13px;
+      font-weight:500;
+    }
+  </style>
+
+  <div class="selector">
+    <div class="eyebrow">MonkeyPanel</div>
+    <h1>Wybierz podopiecznego</h1>
+    <p>Wspólny frontend. Arkusz dobierany dynamicznie przez CLIENT_INDEX.</p>
+
+    <div id="clientList">
+      Ładowanie klientów...
+    </div>
+  </div>
+  `;
+
+  fetch(API_URL + '?action=health')
+    .then(r => r.json())
+    .then(data => {
+
+      const clients = data.clients || [];
+
+      document.getElementById('clientList').innerHTML =
+        clients.map(c => `
+          <button class="clientBtn"
+            onclick="location.href='?client=${c.clientId}'">
+
+            ${c.clientName || c.clientId}
+
+            <small>
+              ${c.clientId} · ${c.status || 'active'}
+            </small>
+
+          </button>
+        `).join('');
+
+    })
+    .catch(err => {
+
+      document.getElementById('clientList').innerHTML =
+        '<div style="color:#fca5a5">Błąd ładowania klientów<br><br>' +
+        err +
+        '</div>';
+    });
+}
+
 const STATE_KEY=`monkeypanel.alpha.v04.${CLIENT_ID}`;
 let START_DATE="2026-05-12";let TOTAL_WEEKS=11;const DAYS=[{dow:"wt.",workoutId:1,offset:0},{dow:"czw.",workoutId:2,offset:2},{dow:"sob.",workoutId:3,offset:4},{dow:"ndz.",workoutId:4,offset:5}];
 const MEASUREMENTS=["Udo","Dupa","Brzuch","Klatka","Biceps","Szyja","Waga"];
