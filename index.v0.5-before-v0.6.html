@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MonkeyPanel v0.6 Supabase</title>
+<title>MonkeyPanel v0.5 Supabase</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#080808;--card:#141414;--card2:#202020;--line:#303030;--text:#f4f4f5;--muted:#a1a1aa;--green:#14532d;--green2:#22c55e;--gold:#422006;--red:#450a0a;--blue:#111827;--accent:#f4f4f5;--accentText:#09090b}
@@ -14,7 +14,7 @@
 <body>
 <div class="app">
   <header class="top">
-    <div class="eyebrow">MonkeyPanel v0.6 · Supabase</div>
+    <div class="eyebrow">MonkeyPanel v0.5 · Supabase</div>
     <h1 id="headerTitle">Postęp planu</h1>
     <div class="subtitle" id="headerSub">Ładowanie danych…</div>
     <div id="apiStatus" class="api loading">Ładowanie Supabase…</div>
@@ -211,32 +211,11 @@ function rowMode(row,sess=currentSession()){
   if(/min|sek|czas/i.test(String(row.reps_text||"")))return"time";
   return"sets";
 }
-function progressionExerciseMatches(row,week){
-  const blocks=app.blocks.filter(b=>Number(b.start_week)<=Number(week)&&Number(b.end_week)>=Number(week));
-  const candidates=app.progressionExercises.filter(x=>blocks.some(b=>b.id===x.block_id));
-  const exact=candidates.filter(x=>x.training_exercise_id===row.id);
-  if(exact.length)return exact;
-  const byExercise=candidates.filter(x=>!x.training_exercise_id&&row.exercise_id&&x.exercise_id===row.exercise_id);
-  if(byExercise.length)return byExercise;
-  const rowName=norm(sourceName(row));
-  return candidates.filter(x=>!x.training_exercise_id&&norm(x.source_name||x.exercises?.name)===rowName);
-}
 function progressionFor(row,week){
-  const matches=progressionExerciseMatches(row,week);
-  if(!matches.length)return[];
-  const order=new Map(matches.map((x,i)=>[x.id,Number(x.order_index||i)]));
-  const ids=new Set(matches.map(x=>x.id));
-  return expandProgressionRows(app.progressionSets
-    .filter(s=>ids.has(s.progression_exercise_id)&&Number(s.week_number)===Number(week))
-    .sort((a,b)=>(order.get(a.progression_exercise_id)-order.get(b.progression_exercise_id))||Number(a.set_no||0)-Number(b.set_no||0)));
-}
-function expandProgressionRows(rows){
-  const out=[];
-  for(const row of rows){
-    const repeat=Math.max(1,Number(row.set_count)||1);
-    for(let i=0;i<repeat;i++)out.push({...row,_expanded_index:i,_expanded_count:repeat});
-  }
-  return out;
+  const blocks=app.blocks.filter(b=>Number(b.start_week)<=Number(week)&&Number(b.end_week)>=Number(week));
+  const pe=app.progressionExercises.find(x=>x.training_exercise_id===row.id&&blocks.some(b=>b.id===x.block_id));
+  if(!pe)return[];
+  return app.progressionSets.filter(s=>s.progression_exercise_id===pe.id&&Number(s.week_number)===Number(week)).sort((a,b)=>(a.set_no||0)-(b.set_no||0));
 }
 function formatProgressionSet(s){
   const load=String(s.load_text||money(s.kg)||"").trim();
@@ -246,21 +225,14 @@ function formatProgressionSet(s){
   const main=[load,reps].filter(Boolean).join(" / ");
   return raw||[main,rest].filter(Boolean).join(" · ")||s.label||`Seria ${s.set_no}`;
 }
-function plannedSignature(row,sess=currentSession()){
-  const rx=progressionFor(row,sess.week);
-  if(rx.length)return `rx:${rx.map(s=>[s.progression_exercise_id,s.week_number,s.set_no,s.raw_text,s.load_text,s.kg,s.reps_text,s.rest_text,s.set_count,s._expanded_index].join("/")).join("|")}`;
-  return `base:${row.mode||""}|${row.sets_text||""}|${row.reps_text||""}|${row.rest_text||""}|${row.load_text||""}|${row.weight||""}`;
-}
-function markPlannedSets(sets,sig){return sets.map(s=>({...s,_planSig:sig}))}
 function countSets(row){const n=parseInt(String(row.sets_text||"").match(/\d+/)?.[0]||"",10);return Number.isFinite(n)&&n>0?n:1}
 function defaultSets(row,sess=currentSession()){
-  const sig=plannedSignature(row,sess);
   const rx=progressionFor(row,sess.week);
-  if(rx.length)return markPlannedSets(rx.map((p,i)=>({id:uid(),note:formatProgressionSet(p),kg:String(p.load_text||money(p.kg)||""),reps:String(p.reps_text||""),rpe:"",done:false,freeNote:"",rest:p.rest_text||row.rest_text||""})),sig);
+  if(rx.length)return rx.map((p,i)=>({id:uid(),note:formatProgressionSet(p),kg:String(p.load_text||money(p.kg)||""),reps:String(p.reps_text||""),rpe:"",done:false,freeNote:"",rest:p.rest_text||row.rest_text||""}));
   const mode=rowMode(row,sess);
-  if(mode==="time")return markPlannedSets([{id:uid(),note:"Czas",kg:String(row.load_text||""),reps:String(row.reps_text||""),rpe:"",done:false,freeNote:""}],sig);
-  if(mode==="done")return markPlannedSets([{id:uid(),note:"Wykonane",kg:"",reps:String(row.reps_text||""),rpe:"",done:false,freeNote:""}],sig);
-  return markPlannedSets(Array.from({length:countSets(row)},(_,i)=>({id:uid(),note:`Seria ${i+1}`,kg:String(row.load_text||money(row.weight)||""),reps:String(row.reps_text||""),rpe:"",done:false,freeNote:""})),sig);
+  if(mode==="time")return[{id:uid(),note:"Czas",kg:String(row.load_text||""),reps:String(row.reps_text||""),rpe:"",done:false,freeNote:""}];
+  if(mode==="done")return[{id:uid(),note:"Wykonane",kg:"",reps:String(row.reps_text||""),rpe:"",done:false,freeNote:""}];
+  return Array.from({length:countSets(row)},(_,i)=>({id:uid(),note:`Seria ${i+1}`,kg:String(row.load_text||money(row.weight)||""),reps:String(row.reps_text||""),rpe:"",done:false,freeNote:""}));
 }
 function dbLogsFor(row,sess=currentSession()){
   const db=dbForSession(sess);if(!db)return[];
@@ -273,14 +245,8 @@ function setsFor(row,sess=currentSession()){
     if(logs.length)return logs.map(l=>({id:l.id,note:l.planned_label||`Seria ${l.set_no}`,kg:String(l.kg??""),reps:String(l.reps_text||""),rpe:String(l.rpe??""),done:!!l.done,freeNote:l.note||""}));
   }
   const key=exerciseKey(row,sess);
-  const sig=plannedSignature(row,sess), existing=app.draft.logs[key];
-  if(!existing||needsPlanRefresh(existing,sig))app.draft.logs[key]=defaultSets(row,sess);
+  if(!app.draft.logs[key])app.draft.logs[key]=defaultSets(row,sess);
   return app.draft.logs[key];
-}
-function needsPlanRefresh(sets,sig){
-  if(!Array.isArray(sets)||!sets.length)return true;
-  if(sets[0]?._planSig===sig)return false;
-  return !sets.some(s=>s.done||String(s.rpe||"").trim()||String(s.freeNote||"").trim());
 }
 function skipFor(row,sess=currentSession()){return app.draft.skips[exerciseKey(row,sess)]||null}
 function exerciseDone(row,sess=currentSession()){if(isDbDone(sess))return true;if(skipFor(row,sess))return true;const sets=setsFor(row,sess);return sets.length&&sets.every(s=>s.done)}
@@ -348,19 +314,13 @@ function renderSession(){
   if(!w){$("view").innerHTML=`<section class="card"><div class="empty">Brak treningu.</div></section>`;return}
   if(sessionDone(sess)){$("view").innerHTML=finishHTML(sess);return}
   const mode=rowMode(row,sess),sets=setsFor(row,sess),skipped=skipFor(row,sess),rx=progressionFor(row,sess.week);
-  $("view").innerHTML=`<section class="card"><div class="exerciseNav"><button class="btn secondary" onclick="exitSession()">← Kalendarz</button><button class="btn secondary navMini" onclick="prevExercise()" ${app.exerciseIndex===0?"disabled":""}>‹</button><button class="btn secondary navMini" onclick="nextExercise()" ${app.exerciseIndex>=w.exercises.length-1?"disabled":""}>›</button></div><div class="exerciseTop"><div><div class="subtitle">Ćwiczenie ${app.exerciseIndex+1}/${w.exercises.length}</div><div class="exercise-title">${esc(sourceName(row))}</div></div><span class="pill">${modeLabel(mode)}</span></div><div class="exerciseProgress">${w.exercises.map((r,i)=>`<div class="dot ${exerciseDone(r,sess)?"done":i===app.exerciseIndex?"current":""}"></div>`).join("")}</div><div class="stats"><div class="stat"><small>Serie</small><strong>${esc(row.sets_text||sets.length||"-")}</strong></div><div class="stat"><small>Powt.</small><strong>${esc(row.reps_text||"-")}</strong></div><div class="stat"><small>Przerwa</small><strong>${esc(row.rest_text||"-")}</strong></div></div>${modeSwitchHTML(mode)}${videoBlock(row)}${rx.length?`<div class="note"><strong>Rozpiska tygodnia ${sess.week}</strong><div class="rxLine">${rx.map(s=>`<span class="rxPill gold">${esc(formatProgressionSet(s))}</span>`).join("")}</div></div>`:""}<div class="note"><strong>Uwagi trenera</strong><br>${esc(row.notes||"Brak uwag")}</div>${skipped?`<div class="note" style="border:1px solid #92400e"><strong>Ćwiczenie pominięte</strong><br>${esc(skipped.reason)}</div>`:modeCompletionHTML(row,mode,sets)}${mode==="sets"&&!skipped?`<div class="actions"><button class="btn secondary" onclick="addSet()">+ Seria</button><button class="btn secondary" onclick="removeSet()">− Usuń</button></div>`:""}<div class="actions"><button class="btn secondary" onclick="skipExercise()">Pomiń ćwiczenie</button><button class="btn secondary" onclick="unskipExercise()">Cofnij pominięcie</button></div><textarea class="sessionNote" placeholder="Notatka do całego treningu" oninput="app.draft.sessionNotes[sessionKey()] = this.value; saveDraft()">${esc(app.draft.sessionNotes[sessionKey()]||"")}</textarea></section>`;
+  $("view").innerHTML=`<section class="card"><div class="exerciseNav"><button class="btn secondary" onclick="exitSession()">← Kalendarz</button><button class="btn secondary navMini" onclick="prevExercise()" ${app.exerciseIndex===0?"disabled":""}>‹</button><button class="btn secondary navMini" onclick="nextExercise()" ${app.exerciseIndex>=w.exercises.length-1?"disabled":""}>›</button></div><div class="exerciseTop"><div><div class="subtitle">Ćwiczenie ${app.exerciseIndex+1}/${w.exercises.length}</div><div class="exercise-title">${esc(sourceName(row))}</div></div><span class="pill">${modeLabel(mode)}</span></div><div class="exerciseProgress">${w.exercises.map((r,i)=>`<div class="dot ${exerciseDone(r,sess)?"done":i===app.exerciseIndex?"current":""}"></div>`).join("")}</div><div class="stats"><div class="stat"><small>Serie</small><strong>${esc(row.sets_text||sets.length||"-")}</strong></div><div class="stat"><small>Powt.</small><strong>${esc(row.reps_text||"-")}</strong></div><div class="stat"><small>Przerwa</small><strong>${esc(row.rest_text||"-")}</strong></div></div>${modeSwitchHTML(mode)}${videoBlock(row)}${rx.length?`<div class="note"><strong>Rozpiska tygodnia ${sess.week}</strong><div class="rxLine">${rx.map(s=>`<span class="rxPill gold">${esc(formatProgressionSet(s))}</span>`).join("")}</div></div>`:""}<div class="note"><strong>Uwagi trenera</strong><br>${esc(row.notes||"Brak uwag")}</div>${skipped?`<div class="note" style="border:1px solid #92400e"><strong>Ćwiczenie pominięte</strong><br>${esc(skipped.reason)}</div>`:sets.map((set,i)=>setHTML(row,set,i,sets)).join("")}${mode==="sets"&&!skipped?`<div class="actions"><button class="btn secondary" onclick="addSet()">+ Seria</button><button class="btn secondary" onclick="removeSet()">− Usuń</button></div>`:""}<div class="actions"><button class="btn secondary" onclick="skipExercise()">Pomiń ćwiczenie</button><button class="btn secondary" onclick="unskipExercise()">Cofnij pominięcie</button></div><textarea class="sessionNote" placeholder="Notatka do całego treningu" oninput="app.draft.sessionNotes[sessionKey()] = this.value; saveDraft()">${esc(app.draft.sessionNotes[sessionKey()]||"")}</textarea></section>`;
 }
 function modeLabel(mode){return mode==="time"?"czas":mode==="done"?"wykonane":"serie"}
 function modeSwitchHTML(mode){return `<div class="actions" style="grid-template-columns:repeat(3,1fr);margin:10px 0"><button class="btn ${mode==="sets"?"":"secondary"}" onclick="setExerciseMode('sets')">Serie</button><button class="btn ${mode==="time"?"":"secondary"}" onclick="setExerciseMode('time')">Czas</button><button class="btn ${mode==="done"?"":"secondary"}" onclick="setExerciseMode('done')">Wykonane</button></div>`}
 function videoBlock(row){const url=row.exercises?.youtube_url||"";if(!url)return"";const id=String(url).match(/(?:youtu\.be\/|v=|embed\/)([A-Za-z0-9_-]{6,})/)?.[1];return id?`<div class="embed"><iframe src="https://www.youtube.com/embed/${esc(id)}" allowfullscreen></iframe></div>`:`<a class="btn secondary full" href="${esc(url)}" target="_blank" rel="noreferrer">Otwórz film</a>`}
 function setHTML(row,set,i,sets){
   return `<div class="set ${set.done?"done":""}"><div class="doneCompact"><strong>${esc(set.note)}</strong><button class="btn tiny secondary" onclick="toggleSet('${row.id}','${set.id}')">Edytuj</button></div><div class="openSet"><div class="set-head"><span>${i+1}. ${esc(set.note)}</span><button class="btn tiny ${set.done?"secondary":"good"}" onclick="toggleSet('${row.id}','${set.id}')">${set.done?"Cofnij":"Zrobione"}</button></div><div class="inputs"><label class="small">kg<input inputmode="decimal" value="${esc(set.kg)}" oninput="updateSet('${row.id}','${set.id}','kg',this.value)"></label><label class="small">powt.<input inputmode="decimal" value="${esc(set.reps)}" oninput="updateSet('${row.id}','${set.id}','reps',this.value)"></label><label class="small">RPE<input inputmode="decimal" value="${esc(set.rpe)}" oninput="updateSet('${row.id}','${set.id}','rpe',this.value)"></label></div><textarea style="margin-top:8px" placeholder="Notatka do serii" oninput="updateSet('${row.id}','${set.id}','freeNote',this.value)">${esc(set.freeNote||"")}</textarea></div></div>`;
-}
-function modeCompletionHTML(row,mode,sets){
-  if(mode==="sets")return sets.map((set,i)=>setHTML(row,set,i,sets)).join("");
-  const set=sets[0]||defaultSets(row,currentSession())[0],title=mode==="time"?"Wykonanie na czas":"Ćwiczenie do wykonania";
-  const detail=mode==="time"?`<label class="small">czas / wynik<input value="${esc(set.reps)}" oninput="updateSet('${row.id}','${set.id}','reps',this.value)"></label>`:`<div class="subtitle">${esc(row.reps_text&&row.reps_text!=="-"?row.reps_text:"Oznacz ćwiczenie jako wykonane.")}</div>`;
-  return `<div class="set ${set.done?"done":""}"><div class="set-head"><span>${title}</span><button class="btn tiny ${set.done?"secondary":"good"}" onclick="toggleSet('${row.id}','${set.id}')">${set.done?"Cofnij":"Zrobione"}</button></div>${detail}<textarea style="margin-top:8px" placeholder="Notatka do ćwiczenia" oninput="updateSet('${row.id}','${set.id}','freeNote',this.value)">${esc(set.freeNote||"")}</textarea></div>`;
 }
 function updateSet(rowId,setId,field,value){const row=app.trainingExercises.find(r=>r.id===rowId);const s=setsFor(row).find(x=>x.id===setId);if(s)s[field]=value;saveDraft()}
 function toggleSet(rowId,setId){const row=app.trainingExercises.find(r=>r.id===rowId),s=setsFor(row).find(x=>x.id===setId);if(!s)return;s.done=!s.done;render();if(s.done&&exerciseDone(row))celebrateNext()}
