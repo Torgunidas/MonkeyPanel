@@ -1,19 +1,20 @@
 <!DOCTYPE html>
-<!-- saved from url=(0129)file:///Users/torgerd/Documents/Codex/2026-06-09/files-mentioned-by-the-user-gorilliapanel/outputs/MonkeyPanel_supabase_v0_3.html -->
+<!-- saved from url=(0129)file:///Users/torgerd/Documents/Codex/2026-06-09/files-mentioned-by-the-user-gorilliapanel/outputs/MonkeyPanel_supabase_v0_4.html -->
 <html lang="pl"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MonkeyPanel v0.3 Supabase</title>
-<script src="./MonkeyPanel v0.3 Supabase_files/supabase-js@2"></script>
+<title>MonkeyPanel v0.4 Supabase</title>
+<script src="./MonkeyPanel v0.4 Supabase_files/supabase-js@2"></script>
 <style>
 :root{--bg:#080808;--card:#141414;--card2:#202020;--line:#303030;--text:#f4f4f5;--muted:#a1a1aa;--green:#14532d;--green2:#22c55e;--gold:#422006;--red:#450a0a;--blue:#111827;--accent:#f4f4f5;--accentText:#09090b}
 *{box-sizing:border-box}html{overflow-y:scroll;scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,input,textarea,select{font:inherit}button{cursor:pointer}.app{width:min(560px,100%);margin:0 auto;min-height:100dvh;padding:12px 12px 90px}.top{position:sticky;top:0;z-index:20;margin:-12px -12px 12px;padding:14px 12px 10px;background:rgba(8,8,8,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:900}h1{font-size:28px;line-height:1.05;margin:3px 0 2px}h2{font-size:22px;margin:0 0 8px}.subtitle{color:var(--muted);font-size:15px}.api{font-size:13px;margin-top:5px}.api.ok{color:#86efac}.api.err{color:#fca5a5}.api.loading{color:#fde68a}.progress{height:9px;background:#262626;border-radius:99px;margin-top:14px;overflow:hidden}.progress div{height:100%;background:#f4f4f5;width:0%;transition:.25s}.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin:10px 0 12px}.tab{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:18px;padding:9px 4px;font-size:11px}.tab.active{background:var(--accent);color:var(--accentText);border-color:var(--accent)}.card{background:var(--card);border:1px solid var(--line);border-radius:28px;padding:16px;box-shadow:0 12px 30px rgba(0,0,0,.25)}.btn{border:0;border-radius:18px;padding:14px;font-weight:900;background:var(--accent);color:var(--accentText)}.btn.secondary{background:var(--card2);color:var(--text);border:1px solid var(--line)}.btn.good{background:var(--green);color:white}.btn.danger{background:var(--red);color:#fecaca;border:1px solid #991b1b}.btn.full{width:100%}.btn.tiny{padding:5px 10px;border-radius:999px;font-size:12px}.btn:disabled{opacity:.38;cursor:not-allowed}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}.kpi{border:1px solid var(--line);background:var(--card);border-radius:20px;padding:12px;text-align:center}.kpi strong{display:block;font-size:24px}.legend{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 14px}.legend span{font-size:12px;color:#ddd;border:1px solid var(--line);border-radius:999px;padding:5px 8px}.calendar{display:grid;gap:12px}.weekCard{background:var(--card);border:1px solid var(--line);border-radius:26px;padding:12px}.weekHead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.days{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.dayBtn{min-height:112px;text-align:left;border-radius:20px;border:1px solid var(--line);padding:10px;color:var(--text);background:#111}.dayBtn .date{font-size:13px;color:#ddd;line-height:1.15}.dayBtn .name{font-size:19px;font-weight:950;line-height:1.05;margin-top:5px}.dayBtn .bar{height:8px;border-radius:999px;background:rgba(255,255,255,.18);margin-top:8px;overflow:hidden}.dayBtn .bar div{height:100%;border-radius:999px;background:white;width:0%}.status-done{background:#052e16;border-color:#166534}.status-due{background:var(--gold);border-color:#92400e}.status-local{background:#172554;border-color:#2563eb}.status-future{background:var(--blue);border-color:#374151}.exercise-title{font-size:30px;line-height:1.04;margin:6px 0 12px;font-weight:950}.exerciseTop{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start}.pill{display:inline-flex;align-items:center;border-radius:999px;background:var(--card2);padding:5px 10px;color:var(--muted);font-size:12px}.exerciseProgress{display:flex;gap:5px;margin:12px 0 14px;overflow:hidden}.dot{height:8px;flex:1;border-radius:99px;background:#303030}.dot.done{background:var(--green2)}.dot.current{background:#f4f4f5}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}.stat{background:#090909;border-radius:18px;padding:10px;text-align:center}.stat small{display:block;color:var(--muted);font-size:11px;margin-bottom:3px}.note{background:var(--card2);border-radius:18px;padding:12px;color:#e5e5e5;font-size:14px;line-height:1.35;margin:12px 0}.embed{position:relative;width:100%;aspect-ratio:16/9;background:#000;border:1px solid var(--line);border-radius:20px;overflow:hidden;margin:10px 0 12px}.embed iframe{position:absolute;inset:0;width:100%;height:100%;border:0}.set{border:1px solid var(--line);background:#090909;border-radius:24px;padding:12px;margin:10px 0}.set.done{border-color:#166534;background:rgba(20,83,45,.28)}.doneCompact{display:none;align-items:center;justify-content:space-between;gap:8px}.set.done .doneCompact{display:flex}.set.done .openSet{display:none}.set-head{display:flex;justify-content:space-between;gap:8px;font-weight:900;margin-bottom:8px}.inputs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}label.small{display:block;color:var(--muted);font-size:11px;margin-bottom:4px}input,textarea,select{width:100%;background:var(--card2);color:var(--text);border:1px solid #3a3a3a;border-radius:16px;outline:none}input,select{font-size:18px;font-weight:850;text-align:center;padding:10px 6px}textarea{min-height:68px;padding:12px;resize:vertical}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.measure-row{display:flex;align-items:center;gap:12px;background:#090909;border:1px solid var(--line);border-radius:24px;padding:12px;margin-bottom:10px}.measure-row span{width:86px;font-weight:900}.measure-row input{text-align:right;font-size:24px;padding-right:14px}.historyTable{width:100%;overflow:auto}.historyTable table{min-width:620px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px solid #333;padding:9px;text-align:left;vertical-align:top}.list{display:grid;gap:10px}.item,.doneItem,.summaryBlock{background:#090909;border:1px solid var(--line);border-radius:22px;padding:12px}.item.activePlan{border-color:#166534;background:#07130b}.planButton{width:100%;text-align:left;color:var(--text)}.summaryLine{display:flex;justify-content:space-between;gap:8px;border-top:1px solid #272727;padding-top:6px;margin-top:6px}.empty{border:1px dashed #444;border-radius:24px;padding:32px;text-align:center;color:var(--muted)}.toast{position:fixed;left:14px;right:14px;bottom:18px;z-index:60;max-width:540px;margin:auto;background:#f4f4f5;color:#09090b;border-radius:22px;padding:16px;font-weight:900;text-align:center;box-shadow:0 18px 40px rgba(0,0,0,.45)}.finishScreen{background:linear-gradient(180deg,#073b1b,#0b0b0b 48%);border:1px solid #166534;border-radius:34px;padding:22px}.finishHero{text-align:center;padding:18px 6px 12px}.finishHero h2{font-size:36px;line-height:1.05;margin:0 0 8px}.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:50;display:flex;align-items:flex-end;padding:12px}.modal .panel{max-width:560px;width:100%;max-height:86dvh;overflow:auto;margin:0 auto;background:#111;border:1px solid var(--line);border-radius:28px;padding:16px}.hidden{display:none!important}.exerciseNav{display:grid;grid-template-columns:1fr 62px 62px;gap:8px;margin-bottom:12px}.exerciseNav .navMini{font-size:26px;line-height:1;padding:12px 0}.back{margin-bottom:10px}.metaGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.metaBox{background:#090909;border:1px solid var(--line);border-radius:18px;padding:10px}.metaBox small{display:block;color:var(--muted);font-size:11px;margin-bottom:3px}.metaBox strong{font-size:14px;word-break:break-word}.clientBtn{width:100%;text-align:left;background:#0f0f0f;color:var(--text);border:1px solid var(--line);border-radius:24px;padding:14px}.clientBtn strong{display:block;font-size:20px}.clientBtn small{display:block;color:var(--muted);margin-top:4px}.weekPick{border:1px solid var(--line);background:var(--card2);color:var(--text);border-radius:999px;padding:8px 10px;font-weight:900}.weekPick.active{background:var(--accent);color:var(--accentText)}.weekPicker{display:flex;gap:6px;overflow:auto;margin:0 0 12px;padding-bottom:4px}.rxLine{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.rxPill{border:1px solid #3a3a3a;background:#111;border-radius:999px;padding:4px 8px;font-size:12px;color:#ddd}.rxPill.gold{border-color:#92400e;color:#fde68a}.sessionNote{margin-top:12px}@media(max-width:430px){.days{grid-template-columns:repeat(2,1fr)}.tabs{grid-template-columns:repeat(5,minmax(58px,1fr));overflow:auto}.tab{min-width:58px}.summary{grid-template-columns:1fr}.inputs{grid-template-columns:1fr}.actions{grid-template-columns:1fr}.exerciseNav{grid-template-columns:1fr 52px 52px}}
+.clientBtn{display:block;text-decoration:none}
 </style>
 </head>
 <body>
 <div class="app">
   <header class="top">
-    <div class="eyebrow">MonkeyPanel v0.3 · Supabase</div>
+    <div class="eyebrow">MonkeyPanel v0.4 · Supabase</div>
     <h1 id="headerTitle">Wybierz podopiecznego</h1>
     <div class="subtitle" id="headerSub">Publiczna lista testowa</div>
     <div id="apiStatus" class="api ok">Wybierz podopiecznego</div>
@@ -26,7 +27,7 @@
     <button class="tab" data-view="history" onclick="setView(&#39;history&#39;)">✅<br>Log</button>
     <button class="tab" data-view="client" onclick="setView(&#39;client&#39;)">👤<br>Profil</button>
   </nav>
-  <main id="view"><section class="card"><h2>Podopieczni</h2><div class="subtitle" style="margin-bottom:12px">Wybierz profil. Po wyborze MonkeyPanel załaduje aktywny plan z Supabase.</div><div class="list"><button class="clientBtn" onclick="selectAthlete(&#39;gabriel&#39;)"><strong>Gabriel</strong><small>gabriel · active</small></button><button class="clientBtn" onclick="selectAthlete(&#39;illia&#39;)"><strong>Illia</strong><small>illia · active</small></button></div></section></main>
+  <main id="view"><section class="card"><h2>Podopieczni</h2><div class="subtitle" style="margin-bottom:12px">Wybierz profil. Po wyborze MonkeyPanel załaduje aktywny plan z Supabase.</div><div class="list"><a class="clientBtn" href="file:///Users/torgerd/Documents/Codex/2026-06-09/files-mentioned-by-the-user-gorilliapanel/outputs/MonkeyPanel_supabase_v0_4.html?client=gabriel"><strong>Gabriel</strong><small>gabriel · active</small></a><a class="clientBtn" href="file:///Users/torgerd/Documents/Codex/2026-06-09/files-mentioned-by-the-user-gorilliapanel/outputs/MonkeyPanel_supabase_v0_4.html?client=illia"><strong>Illia</strong><small>illia · active</small></a></div></section></main>
 </div>
 <div id="toast" class="toast hidden"></div>
 <script>
@@ -58,6 +59,16 @@ function money(v){if(v===null||v===undefined||v==="")return"";return Number(v).t
 function norm(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ł/g,"l").trim()}
 function setStatus(text,kind="loading"){app.status=text;app.statusKind=kind;const el=$("apiStatus");if(el){el.textContent=text;el.className=`api ${kind}`}}
 function showToast(text){const el=$("toast");el.textContent=text;el.classList.remove("hidden");clearTimeout(showToast.t);showToast.t=setTimeout(()=>el.classList.add("hidden"),2600)}
+function showFatalError(err){
+  const msg=err?.message||String(err||"Błąd aplikacji");
+  console.error(err);
+  setStatus(msg,"err");
+  showToast(msg);
+  const view=$("view");
+  if(view&&!app.plan)view.innerHTML=`<section class="card"><div class="empty">${esc(msg)}</div></section>`;
+}
+window.addEventListener("error",event=>showFatalError(event.error||event.message));
+window.addEventListener("unhandledrejection",event=>showFatalError(event.reason));
 function storageKey(){return app.athlete&&app.plan?`monkey_supabase_v03__${app.athlete.id}__${app.plan.id}`:"monkey_supabase_v03"}
 function loadDraft(){try{app.draft={logs:{},skips:{},sessionNotes:{},measurements:{},modeOverrides:{},...(JSON.parse(localStorage.getItem(storageKey())||"{}"))}}catch{app.draft={logs:{},skips:{},sessionNotes:{},measurements:{},modeOverrides:{}}}}
 function saveDraft(){if(app.athlete&&app.plan)localStorage.setItem(storageKey(),JSON.stringify(app.draft))}
@@ -65,7 +76,7 @@ async function init(){
   try{
     setStatus("Ładowanie podopiecznych…","loading");
     await loadAthletes();
-    if(INITIAL_CLIENT&&app.athletes.some(a=>a.client_key===INITIAL_CLIENT))await selectAthlete(INITIAL_CLIENT,false);
+    if(INITIAL_CLIENT&&app.athletes.some(a=>String(a.client_key||"").trim().toLowerCase()===INITIAL_CLIENT))await selectAthlete(INITIAL_CLIENT,false);
     else{setStatus("Wybierz podopiecznego","ok");render()}
   }catch(err){console.error(err);setStatus(err.message||"Błąd ładowania","err");render()}
 }
@@ -75,10 +86,11 @@ async function loadAthletes(){
   app.athletes=(data||[]).filter(a=>a.status!=="archived");
 }
 async function selectAthlete(clientKey,updateUrl=true){
-  const athlete=app.athletes.find(a=>a.client_key===clientKey);
+  const key=String(clientKey||"").trim().toLowerCase();
+  const athlete=app.athletes.find(a=>String(a.client_key||"").trim().toLowerCase()===key);
   if(!athlete)throw new Error("Nie znaleziono podopiecznego");
   app.athlete=athlete;app.view="train";app.mode="calendar";app.activeSessionId=null;app.exerciseIndex=0;
-  if(updateUrl)history.replaceState(null,"",`${location.pathname}?client=${encodeURIComponent(clientKey)}`);
+  if(updateUrl)history.replaceState(null,"",`${location.pathname}?client=${encodeURIComponent(athlete.client_key)}`);
   setStatus(`Ładowanie planu: ${athlete.name}`,"loading");render();
   await loadAthletePlan();
 }
@@ -266,7 +278,8 @@ function header(t,s){$("headerTitle").textContent=t;$("headerSub").textContent=s
 function renderClientSelect(){
   header("Wybierz podopiecznego","Publiczna lista testowa");
   $("progressBar").style.width="0%";
-  $("view").innerHTML=`<section class="card"><h2>Podopieczni</h2><div class="subtitle" style="margin-bottom:12px">Wybierz profil. Po wyborze MonkeyPanel załaduje aktywny plan z Supabase.</div><div class="list">${app.athletes.map(a=>`<button class="clientBtn" onclick="selectAthlete('${esc(a.client_key)}')"><strong>${esc(a.name||a.client_key)}</strong><small>${esc(a.client_key)} · ${esc(a.status||"active")}</small></button>`).join("")||`<div class="empty">Brak podopiecznych.</div>`}</div></section>`;
+  const items=app.athletes.map(a=>`<a class="clientBtn" href="?client=${encodeURIComponent(a.client_key)}"><strong>${esc(a.name||a.client_key)}</strong><small>${esc(a.client_key)} · ${esc(a.status||"active")}</small></a>`).join("");
+  $("view").innerHTML=`<section class="card"><h2>Podopieczni</h2><div class="subtitle" style="margin-bottom:12px">Wybierz profil. Po wyborze MonkeyPanel załaduje aktywny plan z Supabase.</div><div class="list">${items||`<div class="empty">Brak podopiecznych.</div>`}</div></section>`;
 }
 function renderCalendar(){
   const st=currentPlanStats(),s=schedule(),next=nextPendingSession();
