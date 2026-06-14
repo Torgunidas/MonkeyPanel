@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MonkeyPanel v0.6 Supabase</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#080808;--card:#141414;--card2:#202020;--line:#303030;--text:#f4f4f5;--muted:#a1a1aa;--green:#14532d;--green2:#22c55e;--gold:#422006;--red:#450a0a;--blue:#111827;--accent:#f4f4f5;--accentText:#09090b}
+*{box-sizing:border-box}html{overflow-y:scroll;scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,input,textarea,select{font:inherit}button{cursor:pointer}.app{width:min(560px,100%);margin:0 auto;min-height:100dvh;padding:12px 12px 90px}.top{position:sticky;top:0;z-index:20;margin:-12px -12px 12px;padding:14px 12px 10px;background:rgba(8,8,8,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:900}h1{font-size:28px;line-height:1.05;margin:3px 0 2px}h2{font-size:22px;margin:0 0 8px}.subtitle{color:var(--muted);font-size:15px}.api{font-size:13px;margin-top:5px}.api.ok{color:#86efac}.api.err{color:#fca5a5}.api.loading{color:#fde68a}.progress{height:9px;background:#262626;border-radius:99px;margin-top:14px;overflow:hidden}.progress div{height:100%;background:#f4f4f5;width:0%;transition:.25s}.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin:10px 0 12px}.tab{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:18px;padding:9px 4px;font-size:11px}.tab.active{background:var(--accent);color:var(--accentText);border-color:var(--accent)}.card{background:var(--card);border:1px solid var(--line);border-radius:28px;padding:16px;box-shadow:0 12px 30px rgba(0,0,0,.25)}.btn{border:0;border-radius:18px;padding:14px;font-weight:900;background:var(--accent);color:var(--accentText)}.btn.secondary{background:var(--card2);color:var(--text);border:1px solid var(--line)}.btn.good{background:var(--green);color:white}.btn.danger{background:var(--red);color:#fecaca;border:1px solid #991b1b}.btn.full{width:100%}.btn.tiny{padding:5px 10px;border-radius:999px;font-size:12px}.btn:disabled{opacity:.38;cursor:not-allowed}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}.kpi{border:1px solid var(--line);background:var(--card);border-radius:20px;padding:12px;text-align:center}.kpi strong{display:block;font-size:24px}.legend{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 14px}.legend span{font-size:12px;color:#ddd;border:1px solid var(--line);border-radius:999px;padding:5px 8px}.calendar{display:grid;gap:12px}.weekCard{background:var(--card);border:1px solid var(--line);border-radius:26px;padding:12px}.weekHead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.days{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.dayBtn{min-height:112px;text-align:left;border-radius:20px;border:1px solid var(--line);padding:10px;color:var(--text);background:#111}.dayBtn .date{font-size:13px;color:#ddd;line-height:1.15}.dayBtn .name{font-size:19px;font-weight:950;line-height:1.05;margin-top:5px}.dayBtn .bar{height:8px;border-radius:999px;background:rgba(255,255,255,.18);margin-top:8px;overflow:hidden}.dayBtn .bar div{height:100%;border-radius:999px;background:white;width:0%}.status-done{background:#052e16;border-color:#166534}.status-due{background:var(--gold);border-color:#92400e}.status-local{background:#172554;border-color:#2563eb}.status-future{background:var(--blue);border-color:#374151}.exercise-title{font-size:30px;line-height:1.04;margin:6px 0 12px;font-weight:950}.exerciseTop{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start}.pill{display:inline-flex;align-items:center;border-radius:999px;background:var(--card2);padding:5px 10px;color:var(--muted);font-size:12px}.exerciseProgress{display:flex;gap:5px;margin:12px 0 14px;overflow:hidden}.dot{height:8px;flex:1;border-radius:99px;background:#303030}.dot.done{background:var(--green2)}.dot.current{background:#f4f4f5}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}.stat{background:#090909;border-radius:18px;padding:10px;text-align:center}.stat small{display:block;color:var(--muted);font-size:11px;margin-bottom:3px}.note{background:var(--card2);border-radius:18px;padding:12px;color:#e5e5e5;font-size:14px;line-height:1.35;margin:12px 0}.embed{position:relative;width:100%;aspect-ratio:16/9;background:#000;border:1px solid var(--line);border-radius:20px;overflow:hidden;margin:10px 0 12px}.embed iframe{position:absolute;inset:0;width:100%;height:100%;border:0}.set{border:1px solid var(--line);background:#090909;border-radius:24px;padding:12px;margin:10px 0}.set.done{border-color:#166534;background:rgba(20,83,45,.28)}.doneCompact{display:none;align-items:center;justify-content:space-between;gap:8px}.set.done .doneCompact{display:flex}.set.done .openSet{display:none}.set-head{display:flex;justify-content:space-between;gap:8px;font-weight:900;margin-bottom:8px}.inputs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}label.small{display:block;color:var(--muted);font-size:11px;margin-bottom:4px}input,textarea,select{width:100%;background:var(--card2);color:var(--text);border:1px solid #3a3a3a;border-radius:16px;outline:none}input,select{font-size:18px;font-weight:850;text-align:center;padding:10px 6px}textarea{min-height:68px;padding:12px;resize:vertical}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.measure-row{display:flex;align-items:center;gap:12px;background:#090909;border:1px solid var(--line);border-radius:24px;padding:12px;margin-bottom:10px}.measure-row span{width:86px;font-weight:900}.measure-row input{text-align:right;font-size:24px;padding-right:14px}.historyTable{width:100%;overflow:auto}.historyTable table{min-width:620px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px solid #333;padding:9px;text-align:left;vertical-align:top}.list{display:grid;gap:10px}.item,.doneItem,.summaryBlock{background:#090909;border:1px solid var(--line);border-radius:22px;padding:12px}.item.activePlan{border-color:#166534;background:#07130b}.planButton{width:100%;text-align:left;color:var(--text)}.summaryLine{display:flex;justify-content:space-between;gap:8px;border-top:1px solid #272727;padding-top:6px;margin-top:6px}.empty{border:1px dashed #444;border-radius:24px;padding:32px;text-align:center;color:var(--muted)}.toast{position:fixed;left:14px;right:14px;bottom:18px;z-index:60;max-width:540px;margin:auto;background:#f4f4f5;color:#09090b;border-radius:22px;padding:16px;font-weight:900;text-align:center;box-shadow:0 18px 40px rgba(0,0,0,.45)}.finishScreen{background:linear-gradient(180deg,#073b1b,#0b0b0b 48%);border:1px solid #166534;border-radius:34px;padding:22px}.finishHero{text-align:center;padding:18px 6px 12px}.finishHero h2{font-size:36px;line-height:1.05;margin:0 0 8px}.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:50;display:flex;align-items:flex-end;padding:12px}.modal .panel{max-width:560px;width:100%;max-height:86dvh;overflow:auto;margin:0 auto;background:#111;border:1px solid var(--line);border-radius:28px;padding:16px}.hidden{display:none!important}.exerciseNav{display:grid;grid-template-columns:1fr 62px 62px;gap:8px;margin-bottom:12px}.exerciseNav .navMini{font-size:26px;line-height:1;padding:12px 0}.back{margin-bottom:10px}.metaGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.metaBox{background:#090909;border:1px solid var(--line);border-radius:18px;padding:10px}.metaBox small{display:block;color:var(--muted);font-size:11px;margin-bottom:3px}.metaBox strong{font-size:14px;word-break:break-word}.clientBtn{width:100%;text-align:left;background:#0f0f0f;color:var(--text);border:1px solid var(--line);border-radius:24px;padding:14px}.clientBtn strong{display:block;font-size:20px}.clientBtn small{display:block;color:var(--muted);margin-top:4px}.weekPick{border:1px solid var(--line);background:var(--card2);color:var(--text);border-radius:999px;padding:8px 10px;font-weight:900}.weekPick.active{background:var(--accent);color:var(--accentText)}.weekPicker{display:flex;gap:6px;overflow:auto;margin:0 0 12px;padding-bottom:4px}.rxLine{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.rxPill{border:1px solid #3a3a3a;background:#111;border-radius:999px;padding:4px 8px;font-size:12px;color:#ddd}.rxPill.gold{border-color:#92400e;color:#fde68a}.sessionNote{margin-top:12px}@media(max-width:430px){.days{grid-template-columns:repeat(2,1fr)}.tabs{grid-template-columns:repeat(5,minmax(58px,1fr));overflow:auto}.tab{min-width:58px}.summary{grid-template-columns:1fr}.inputs{grid-template-columns:1fr}.actions{grid-template-columns:1fr}.exerciseNav{grid-template-columns:1fr 52px 52px}}
+.clientBtn{display:block;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="eyebrow">MonkeyPanel v0.6 · Supabase</div>
+    <h1 id="headerTitle">Postęp planu</h1>
+    <div class="subtitle" id="headerSub">Ładowanie danych…</div>
+    <div id="apiStatus" class="api loading">Ładowanie Supabase…</div>
+    <div class="progress"><div id="progressBar"></div></div>
+  </header>
+  <nav class="tabs hidden" id="tabs">
+    <button class="tab active" data-view="train" onclick="setView('train')">🏋️<br>Trening</button>
+    <button class="tab" data-view="plan" onclick="setView('plan')">📋<br>Plan</button>
+    <button class="tab" data-view="measure" onclick="setView('measure')">📏<br>Pomiary</button>
+    <button class="tab" data-view="history" onclick="setView('history')">✅<br>Log</button>
+    <button class="tab" data-view="client" onclick="setView('client')">👤<br>Profil</button>
+  </nav>
+  <main id="view"><section class="card"><div class="empty">Ładowanie…</div></section></main>
+</div>
+<div id="toast" class="toast hidden"></div>
+<script>
+function bootError(message){
+  const status=document.getElementById("apiStatus");
+  const view=document.getElementById("view");
+  if(status){status.textContent=message;status.className="api err"}
+  if(view)view.innerHTML=`<section class="card"><div class="empty">${message}</div></section>`;
+}
+if(!window.supabase||!window.supabase.createClient){
+  bootError("Nie udało się załadować biblioteki Supabase. Upewnij się, że na GitHub trafił źródłowy HTML, a nie strona zapisana z przeglądarki.");
+  throw new Error("Supabase library not loaded");
+}
+const SUPABASE_URL="https://matuflemwleglsrzrlkp.supabase.co";
+const SUPABASE_KEY="sb_publishable_D1z2s-S-GrnWH9u9D8P1nA_H3T9W7hF";
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const URL_PARAMS=new URLSearchParams(location.search);
+const INITIAL_CLIENT=(URL_PARAMS.get("client")||URL_PARAMS.get("clientId")||"").trim().toLowerCase();
+const WORKOUT_OFFSETS=[0,2,4,5,7,9];
+const MEASUREMENTS=[
+  ["waga","Waga","kg"],["udo","Udo","cm"],["dupa","Dupa","cm"],["brzuch","Brzuch","cm"],
+  ["klatka","Klatka","cm"],["biceps","Biceps","cm"],["szyja","Szyja","cm"]
+];
+const app={
+  athletes:[],athlete:null,plan:null,links:[],trainings:[],trainingExercises:[],blocks:[],
+  progressionExercises:[],progressionSets:[],weekNotes:[],sessions:[],setLogs:[],measurements:[],
+  sourcePlanKey:null,view:"train",mode:"calendar",activeSessionId:null,exerciseIndex:0,previewWeek:1,
+  draft:{logs:{},skips:{},sessionNotes:{},measurements:{},modeOverrides:{}},
+  status:"Ładowanie Supabase…",statusKind:"loading"
+};
+function $(id){return document.getElementById(id)}
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function uid(){return Math.random().toString(36).slice(2)+Date.now().toString(36)}
+function todayISO(){return new Date().toISOString().slice(0,10)}
+function addDays(iso,days){const d=new Date(`${iso}T00:00:00`);d.setDate(d.getDate()+Number(days||0));return d.toISOString().slice(0,10)}
+function dateLabel(iso){if(!iso)return"-";return String(iso).slice(5,10).replace("-",".")}
+function nullableNumber(v){const text=String(v??"").trim().replace(",",".");return /^-?\d+(?:\.\d+)?$/.test(text)?Number(text):null}
+function money(v){if(v===null||v===undefined||v==="")return"";return Number(v).toLocaleString("pl-PL",{maximumFractionDigits:2})}
+function norm(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ł/g,"l").trim()}
+function setStatus(text,kind="loading"){app.status=text;app.statusKind=kind;const el=$("apiStatus");if(el){el.textContent=text;el.className=`api ${kind}`}}
+function showToast(text){const el=$("toast");el.textContent=text;el.classList.remove("hidden");clearTimeout(showToast.t);showToast.t=setTimeout(()=>el.classList.add("hidden"),2600)}
+function showFatalError(err){
+  const msg=err?.message||String(err||"Błąd aplikacji");
+  console.error(err);
+  setStatus(msg,"err");
+  showToast(msg);
+  const view=$("view");
+  if(view&&!app.plan)view.innerHTML=`<section class="card"><div class="empty">${esc(msg)}</div></section>`;
+}
+window.addEventListener("error",event=>showFatalError(event.error||event.message));
+window.addEventListener("unhandledrejection",event=>showFatalError(event.reason));
+function storageKey(){return app.athlete&&app.plan?`monkey_supabase_v03__${app.athlete.id}__${app.plan.id}`:"monkey_supabase_v03"}
+function loadDraft(){try{app.draft={logs:{},skips:{},sessionNotes:{},measurements:{},modeOverrides:{},...(JSON.parse(localStorage.getItem(storageKey())||"{}"))}}catch{app.draft={logs:{},skips:{},sessionNotes:{},measurements:{},modeOverrides:{}}}}
+function saveDraft(){if(app.athlete&&app.plan)localStorage.setItem(storageKey(),JSON.stringify(app.draft))}
+async function init(){
+  try{
+    setStatus("Ładowanie podopiecznych…","loading");
+    await loadAthletes();
+    if(INITIAL_CLIENT&&app.athletes.some(a=>String(a.client_key||"").trim().toLowerCase()===INITIAL_CLIENT))await selectAthlete(INITIAL_CLIENT,false);
+    else{setStatus("Wybierz podopiecznego","ok");render()}
+  }catch(err){console.error(err);setStatus(err.message||"Błąd ładowania","err");render()}
+}
+async function loadAthletes(){
+  const {data,error}=await sb.from("athletes").select("id,client_key,name,status,notes").order("name");
+  if(error)throw error;
+  app.athletes=(data||[]).filter(a=>a.status!=="archived");
+}
+async function selectAthlete(clientKey,updateUrl=true){
+  const key=String(clientKey||"").trim().toLowerCase();
+  const athlete=app.athletes.find(a=>String(a.client_key||"").trim().toLowerCase()===key);
+  if(!athlete)throw new Error("Nie znaleziono podopiecznego");
+  app.athlete=athlete;app.view="train";app.mode="calendar";app.activeSessionId=null;app.exerciseIndex=0;
+  if(updateUrl)history.replaceState(null,"",`${location.pathname}?client=${encodeURIComponent(athlete.client_key)}`);
+  setStatus(`Ładowanie planu: ${athlete.name}`,"loading");render();
+  await loadAthletePlan();
+}
+async function loadAthletePlan(){
+  const {data,error}=await sb.from("plan_athletes")
+    .select("plan_id,assigned_at,plans(id,slug,name,start_date,weeks,status,notes,created_at,published_at)")
+    .eq("athlete_id",app.athlete.id)
+    .order("assigned_at",{ascending:false});
+  if(error)throw error;
+  app.links=data||[];
+  const active=app.links.find(l=>l.plans?.status==="active")||app.links[0];
+  if(!active?.plans)throw new Error("Podopieczny nie ma przypisanego planu");
+  app.plan=active.plans;
+  await loadPlanBundle();
+}
+async function loadPlanBundle(){
+  const planId=app.plan.id, athleteId=app.athlete.id;
+  const [tr,blocks,sessions,measurements]=await Promise.all([
+    sb.from("trainings").select("id,plan_id,name,focus,order_index").eq("plan_id",planId).order("order_index"),
+    sb.from("progression_blocks").select("id,plan_id,name,block_index,start_week,end_week,notes").eq("plan_id",planId).order("block_index"),
+    sb.from("workout_sessions").select("id,athlete_id,plan_id,source_plan_key,client_key,session_id,workout_date,performed_date,week_number,workout_id,workout_name,status,completed_exercises,total_exercises,session_note,recorded_at").eq("athlete_id",athleteId).eq("plan_id",planId).order("workout_date",{ascending:false}),
+    sb.from("athlete_measurements").select("id,athlete_id,plan_id,source_plan_key,client_key,measurement_date,week_number,waga,udo,dupa,brzuch,klatka,biceps,szyja,recorded_at").eq("athlete_id",athleteId).eq("plan_id",planId).order("measurement_date",{ascending:false})
+  ]);
+  for(const res of [tr,blocks,sessions,measurements])if(res.error)throw res.error;
+  app.trainings=tr.data||[];app.blocks=blocks.data||[];app.sessions=sessions.data||[];app.measurements=measurements.data||[];
+  app.sourcePlanKey=app.sessions.find(s=>s.source_plan_key)?.source_plan_key||app.plan.slug;
+  const trainingIds=app.trainings.map(t=>t.id);
+  app.trainingExercises=[];
+  if(trainingIds.length){
+    const te=await sb.from("training_exercises").select("id,training_id,exercise_id,exercise_no,order_index,sets_text,reps_text,rest_text,weight,load_text,tempo_text,use_wg,progression_mode,superset_key,mode,notes,exercises(id,name,youtube_url)").in("training_id",trainingIds).order("order_index");
+    if(te.error)throw te.error;
+    app.trainingExercises=te.data||[];
+  }
+  const blockIds=app.blocks.map(b=>b.id);
+  app.progressionExercises=[];app.progressionSets=[];app.weekNotes=[];
+  if(blockIds.length){
+    const [pe,wn]=await Promise.all([
+      sb.from("progression_exercises").select("id,block_id,exercise_id,training_exercise_id,order_index,source_name,exercises(id,name)").in("block_id",blockIds).order("order_index"),
+      sb.from("progression_week_notes").select("id,block_id,week_number,notes").in("block_id",blockIds).order("week_number")
+    ]);
+    if(pe.error)throw pe.error;if(wn.error)throw wn.error;
+    app.progressionExercises=pe.data||[];app.weekNotes=wn.data||[];
+    const peIds=app.progressionExercises.map(x=>x.id);
+    if(peIds.length){
+      const ps=await sb.from("progression_sets").select("id,progression_exercise_id,week_number,set_no,label,reps_text,kg,raw_text,load_text,set_count,is_skip,is_deload,rest_text,notes").in("progression_exercise_id",peIds).order("week_number");
+      if(ps.error)throw ps.error;
+      app.progressionSets=ps.data||[];
+    }
+  }
+  app.setLogs=[];
+  const sessionIds=app.sessions.map(s=>s.id);
+  if(sessionIds.length){
+    const logs=await sb.from("workout_set_logs").select("id,workout_session_id,athlete_id,plan_id,source_plan_key,client_key,session_id,exercise_no,exercise_name,set_no,planned_label,kg,reps_text,rpe,done,note,recorded_at").in("workout_session_id",sessionIds).order("session_id").order("set_no");
+    if(logs.error)throw logs.error;
+    app.setLogs=logs.data||[];
+  }
+  loadDraft();
+  const next=nextPendingSession();
+  app.activeSessionId=next?.id||schedule()[0]?.id||null;
+  app.previewWeek=next?.week||Math.min(Number(app.plan.weeks)||1,firstGeneratedWeek());
+  setStatus(`Połączono · ${app.athlete.name} · ${app.plan.name}`,"ok");
+  render();
+}
+function workouts(){return app.trainings.map((t,i)=>({num:String(i+1),...t,exercises:app.trainingExercises.filter(r=>r.training_id===t.id).sort((a,b)=>(a.order_index||0)-(b.order_index||0))}))}
+function workoutByNum(num){return workouts().find(w=>String(w.num)===String(num))||workouts()[0]}
+function sessionMap(){return new Map(app.sessions.map(s=>[s.session_id,s]))}
+function maxDbWeek(){return app.sessions.reduce((m,s)=>Math.max(m,Number(s.week_number)||0),0)}
+function firstGeneratedWeek(){
+  const max=maxDbWeek();
+  if(!max)return 1;
+  const candidate=max+1;
+  const containing=app.blocks.filter(b=>Number(b.start_week)<=candidate&&Number(b.end_week)>=candidate).sort((a,b)=>Number(b.start_week)-Number(a.start_week))[0];
+  if(containing)return Number(containing.start_week)||candidate;
+  const future=app.blocks.filter(b=>Number(b.start_week)>max).sort((a,b)=>Number(a.start_week)-Number(b.start_week))[0];
+  return future?Number(future.start_week):candidate;
+}
+function nominalDateFor(week,num){return addDays(app.plan.start_date||todayISO(),(Number(week)-1)*7+(WORKOUT_OFFSETS[Number(num)-1]??((Number(num)-1)*2)))}
+function schedule(){
+  if(!app.plan)return[];
+  const map=sessionMap(), generatedStart=firstGeneratedWeek(), out=[];
+  for(const s of app.sessions){
+    if(Number(s.week_number)<generatedStart)out.push(sessionFromDb(s));
+  }
+  for(let week=generatedStart;week<=Number(app.plan.weeks||1);week++){
+    for(const w of workouts()){
+      const id=`W${week}T${w.num}`;
+      const db=map.get(id);
+      out.push(db?sessionFromDb(db):{id,week,workoutNum:w.num,workoutId:w.num,workoutName:w.name,date:nominalDateFor(week,w.num),nominalDate:nominalDateFor(week,w.num),db:null});
+    }
+  }
+  const seen=new Set(out.map(s=>s.id));
+  for(const s of app.sessions){if(!seen.has(s.session_id))out.push(sessionFromDb(s))}
+  return out.sort((a,b)=>(a.week-b.week)||Number(a.workoutNum)-Number(b.workoutNum)||String(a.date).localeCompare(String(b.date)));
+}
+function sessionFromDb(s){return {id:s.session_id,week:Number(s.week_number)||1,workoutNum:String(s.workout_id||"1"),workoutId:String(s.workout_id||"1"),workoutName:s.workout_name||`${s.workout_id} TRENING`,date:s.workout_date||s.performed_date,nominalDate:s.workout_date||s.performed_date,performedDate:s.performed_date,db:s}}
+function currentSession(){return schedule().find(s=>s.id===app.activeSessionId)||nextPendingSession()||schedule()[0]}
+function dbForSession(sess=currentSession()){return sess?.db||sessionMap().get(sess?.id)}
+function isDbDone(sess=currentSession()){const db=dbForSession(sess);return !!db&&String(db.status||"").startsWith("done")}
+function sessionKey(sess=currentSession()){return `${sess.id}`}
+function exerciseKey(row,sess=currentSession()){return `${sess.id}__${row.id}`}
+function sourceName(row){return row.exercises?.name||"Ćwiczenie"}
+function rowMode(row,sess=currentSession()){
+  const override=app.draft.modeOverrides[row.id];
+  if(override)return override;
+  if(progressionFor(row,sess.week).length)return"sets";
+  const mode=row.mode||"sets";
+  if(mode!=="sets")return mode;
+  if(/min|sek|czas/i.test(String(row.reps_text||"")))return"time";
+  return"sets";
+}
+function progressionExerciseMatches(row,week){
+  const blocks=app.blocks.filter(b=>Number(b.start_week)<=Number(week)&&Number(b.end_week)>=Number(week));
+  const candidates=app.progressionExercises.filter(x=>blocks.some(b=>b.id===x.block_id));
+  const exact=candidates.filter(x=>x.training_exercise_id===row.id);
+  if(exact.length)return exact;
+  const byExercise=candidates.filter(x=>!x.training_exercise_id&&row.exercise_id&&x.exercise_id===row.exercise_id);
+  if(byExercise.length)return byExercise;
+  const rowName=norm(sourceName(row));
+  return candidates.filter(x=>!x.training_exercise_id&&norm(x.source_name||x.exercises?.name)===rowName);
+}
+function progressionFor(row,week){
+  const matches=progressionExerciseMatches(row,week);
+  if(!matches.length)return[];
+  const order=new Map(matches.map((x,i)=>[x.id,Number(x.order_index||i)]));
+  const ids=new Set(matches.map(x=>x.id));
+  return expandProgressionRows(app.progressionSets
+    .filter(s=>ids.has(s.progression_exercise_id)&&Number(s.week_number)===Number(week))
+    .sort((a,b)=>(order.get(a.progression_exercise_id)-order.get(b.progression_exercise_id))||Number(a.set_no||0)-Number(b.set_no||0)));
+}
+function expandProgressionRows(rows){
+  const out=[];
+  for(const row of rows){
+    const repeat=Math.max(1,Number(row.set_count)||1);
+    for(let i=0;i<repeat;i++)out.push({...row,_expanded_index:i,_expanded_count:repeat});
+  }
+  return out;
+}
+function formatProgressionSet(s){
+  const load=String(s.load_text||money(s.kg)||"").trim();
+  const reps=String(s.reps_text||"").trim();
+  const rest=String(s.rest_text||"").trim();
+  const raw=String(s.raw_text||"").trim();
+  const main=[load,reps].filter(Boolean).join(" / ");
+  return raw||[main,rest].filter(Boolean).join(" · ")||s.label||`Seria ${s.set_no}`;
+}
+function plannedSignature(row,sess=currentSession()){
+  const rx=progressionFor(row,sess.week);
+  if(rx.length)return `rx:${rx.map(s=>[s.progression_exercise_id,s.week_number,s.set_no,s.raw_text,s.load_text,s.kg,s.reps_text,s.rest_text,s.set_count,s._expanded_index].join("/")).join("|")}`;
+  return `base:${row.mode||""}|${row.sets_text||""}|${row.reps_text||""}|${row.rest_text||""}|${row.load_text||""}|${row.weight||""}`;
+}
+function markPlannedSets(sets,sig){return sets.map(s=>({...s,_planSig:sig}))}
+function countSets(row){const n=parseInt(String(row.sets_text||"").match(/\d+/)?.[0]||"",10);return Number.isFinite(n)&&n>0?n:1}
+function defaultSets(row,sess=currentSession()){
+  const sig=plannedSignature(row,sess);
+  const rx=progressionFor(row,sess.week);
+  if(rx.length)return markPlannedSets(rx.map((p,i)=>({id:uid(),note:formatProgressionSet(p),kg:String(p.load_text||money(p.kg)||""),reps:String(p.reps_text||""),rpe:"",done:false,freeNote:"",rest:p.rest_text||row.rest_text||""})),sig);
+  const mode=rowMode(row,sess);
+  if(mode==="time")return markPlannedSets([{id:uid(),note:"Czas",kg:String(row.load_text||""),reps:String(row.reps_text||""),rpe:"",done:false,freeNote:""}],sig);
+  if(mode==="done")return markPlannedSets([{id:uid(),note:"Wykonane",kg:"",reps:String(row.reps_text||""),rpe:"",done:false,freeNote:""}],sig);
+  return markPlannedSets(Array.from({length:countSets(row)},(_,i)=>({id:uid(),note:`Seria ${i+1}`,kg:String(row.load_text||money(row.weight)||""),reps:String(row.reps_text||""),rpe:"",done:false,freeNote:""})),sig);
+}
+function dbLogsFor(row,sess=currentSession()){
+  const db=dbForSession(sess);if(!db)return[];
+  const rowName=norm(sourceName(row)), rowNo=String(row.exercise_no||"");
+  return app.setLogs.filter(l=>l.workout_session_id===db.id&&(String(l.exercise_no||"")===rowNo||norm(l.exercise_name)===rowName)).sort((a,b)=>(a.set_no||0)-(b.set_no||0));
+}
+function setsFor(row,sess=currentSession()){
+  if(isDbDone(sess)){
+    const logs=dbLogsFor(row,sess);
+    if(logs.length)return logs.map(l=>({id:l.id,note:l.planned_label||`Seria ${l.set_no}`,kg:String(l.kg??""),reps:String(l.reps_text||""),rpe:String(l.rpe??""),done:!!l.done,freeNote:l.note||""}));
+  }
+  const key=exerciseKey(row,sess);
+  const sig=plannedSignature(row,sess), existing=app.draft.logs[key];
+  if(!existing||needsPlanRefresh(existing,sig))app.draft.logs[key]=defaultSets(row,sess);
+  return app.draft.logs[key];
+}
+function needsPlanRefresh(sets,sig){
+  if(!Array.isArray(sets)||!sets.length)return true;
+  if(sets[0]?._planSig===sig)return false;
+  return !sets.some(s=>s.done||String(s.rpe||"").trim()||String(s.freeNote||"").trim());
+}
+function skipFor(row,sess=currentSession()){return app.draft.skips[exerciseKey(row,sess)]||null}
+function exerciseDone(row,sess=currentSession()){if(isDbDone(sess))return true;if(skipFor(row,sess))return true;const sets=setsFor(row,sess);return sets.length&&sets.every(s=>s.done)}
+function workoutForSession(sess=currentSession()){return workoutByNum(sess?.workoutNum)}
+function sessionDone(sess=currentSession()){if(isDbDone(sess))return true;const w=workoutForSession(sess);return !!w?.exercises?.length&&w.exercises.every(row=>exerciseDone(row,sess))}
+function sessionProgress(sess=currentSession()){
+  const db=dbForSession(sess);if(db&&Number(db.total_exercises)>0)return Math.min(100,Math.round(Number(db.completed_exercises||0)/Number(db.total_exercises)*100));
+  const w=workoutForSession(sess);if(!w?.exercises?.length)return 0;
+  return Math.round(w.exercises.filter(row=>exerciseDone(row,sess)).length/w.exercises.length*100);
+}
+function sessionStatus(sess){if(isDbDone(sess))return"done";if(sessionDone(sess))return"local";const next=nextPendingSession();return next&&next.id===sess.id?"due":"future"}
+function nextPendingSession(){return schedule().find(s=>!sessionDone(s))||null}
+function overallProgress(){const s=schedule();return s.length?Math.round(s.filter(x=>sessionDone(x)).length/s.length*100):0}
+function currentPlanStats(){const s=schedule(),done=s.filter(x=>sessionDone(x)).length,next=nextPendingSession();return{done,total:s.length,progress:overallProgress(),nextWeek:next?.week||"-",nextWorkout:next?.workoutNum||"-"}}
+function setView(v){app.view=v;if(v!=="train")app.mode="calendar";render();scrollToTop()}
+function setSession(id){const sess=schedule().find(s=>s.id===id);if(!sess)return;app.activeSessionId=sess.id;app.mode="session";app.view="train";app.exerciseIndex=0;app.previewWeek=sess.week;render();scrollToTop()}
+function exitSession(){app.mode="calendar";render();scrollToTop()}
+function setExerciseMode(mode){const row=exercise();app.draft.modeOverrides[row.id]=mode;delete app.draft.logs[exerciseKey(row,currentSession())];saveDraft();render()}
+function workout(){return workoutForSession(currentSession())}
+function exercise(){const w=workout();return w.exercises[Math.min(app.exerciseIndex,Math.max(0,w.exercises.length-1))]||{}}
+function render(){
+  $("tabs").classList.toggle("hidden",!app.athlete||!app.plan);
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.view===app.view));
+  setStatus(app.status,app.statusKind);
+  if(!app.athlete||!app.plan)return renderClientSelect();
+  const sess=currentSession(),w=workoutForSession(sess);
+  if(app.view==="train"&&app.mode==="session")header(`${w?.name||"Trening"} · tydz. ${sess.week}`,`Ćwiczenie ${app.exerciseIndex+1}/${Math.max(1,w?.exercises?.length||0)} · ${isDbDone(sess)?"zapisany w Supabase":"wykonanie treningu"}`);
+  else header(app.view==="plan"?"Rozpiska planu":app.view==="measure"?"Pomiary":app.view==="history"?"Log treningowy":app.view==="client"?"Podopieczny":"Postęp planu",`${app.athlete.name} · ${app.plan.name} · ${app.plan.weeks} tyg.`);
+  $("progressBar").style.width=`${app.view==="train"&&app.mode==="session"?sessionProgress(sess):overallProgress()}%`;
+  if(app.view==="train"&&app.mode==="calendar")renderCalendar();
+  if(app.view==="train"&&app.mode==="session")renderSession();
+  if(app.view==="plan")renderPlan();
+  if(app.view==="measure")renderMeasurements();
+  if(app.view==="history")renderHistory();
+  if(app.view==="client")renderClient();
+  saveDraft();
+}
+function header(t,s){$("headerTitle").textContent=t;$("headerSub").textContent=s}
+function renderClientSelect(){
+  header("Wybierz podopiecznego","Publiczna lista testowa");
+  $("progressBar").style.width="0%";
+  const items=app.athletes.map(a=>`<a class="clientBtn" href="${clientHref(a.client_key)}"><strong>${esc(a.name||a.client_key)}</strong><small>${esc(a.client_key)} · ${esc(a.status||"active")}</small></a>`).join("");
+  $("view").innerHTML=`<section class="card"><h2>Podopieczni</h2><div class="subtitle" style="margin-bottom:12px">Wybierz profil. Po wyborze MonkeyPanel załaduje aktywny plan z Supabase.</div><div class="list">${items||`<div class="empty">Brak podopiecznych.</div>`}</div></section>`;
+}
+function clientHref(clientKey){
+  const url=new URL(location.href);
+  url.search="";
+  url.hash="";
+  url.searchParams.set("client",clientKey);
+  return `${url.pathname}${url.search}`;
+}
+function renderCalendar(){
+  const st=currentPlanStats(),s=schedule(),next=nextPendingSession();
+  const groups=Map.groupBy?Map.groupBy(s,x=>x.week):s.reduce((m,x)=>(m[x.week] ||= [],m[x.week].push(x),m),{});
+  const entries=groups instanceof Map?[...groups.entries()]:Object.entries(groups).map(([k,v])=>[Number(k),v]);
+  $("view").innerHTML=`<div class="summary"><div class="kpi"><strong>${st.done}</strong><span class="subtitle">zapisane</span></div><div class="kpi"><strong>${st.total}</strong><span class="subtitle">sesje</span></div><div class="kpi"><strong>${st.progress}%</strong><span class="subtitle">postęp</span></div></div><div class="legend"><span>zielone: zapisane</span><span>złote: następne</span><span>niebieskie: gotowe lokalnie</span></div><div class="calendar">${entries.map(([week,items])=>`<section class="weekCard"><div class="weekHead"><h2>Tydzień ${week}</h2><span class="pill">${week===next?.week?"aktywny":items.every(sessionDone)?"ukończony":"plan"}</span></div><div class="days">${items.map(dayButtonHTML).join("")}</div>${weekNotes(week)}</section>`).join("")}</div>`;
+}
+function dayButtonHTML(sess){
+  const status=sessionStatus(sess),db=dbForSession(sess),label=status==="done"?"zapisany":status==="local"?"gotowy":status==="due"?"następny":"plan";
+  return `<button class="dayBtn status-${status}" onclick="setSession('${sess.id}')"><div class="date">${esc(dateLabel(db?.performed_date||sess.date))}</div><div class="name">${esc(sess.workoutName||workoutByNum(sess.workoutNum)?.name||`${sess.workoutNum} TRENING`)}</div><div class="subtitle">T${sess.week} · ${label}</div><div class="bar"><div style="width:${sessionProgress(sess)}%"></div></div></button>`;
+}
+function weekNotes(week){const blocks=app.blocks.filter(b=>Number(b.start_week)<=week&&Number(b.end_week)>=week);const notes=app.weekNotes.filter(n=>Number(n.week_number)===week&&blocks.some(b=>b.id===n.block_id)).map(n=>n.notes).filter(Boolean);return notes.length?`<div class="note"><strong>Notatka tygodnia</strong><br>${notes.map(esc).join("<br>")}</div>`:""}
+function renderSession(){
+  const sess=currentSession(),w=workoutForSession(sess),row=exercise();
+  if(!w){$("view").innerHTML=`<section class="card"><div class="empty">Brak treningu.</div></section>`;return}
+  if(sessionDone(sess)){$("view").innerHTML=finishHTML(sess);return}
+  const mode=rowMode(row,sess),sets=setsFor(row,sess),skipped=skipFor(row,sess),rx=progressionFor(row,sess.week);
+  $("view").innerHTML=`<section class="card"><div class="exerciseNav"><button class="btn secondary" onclick="exitSession()">← Kalendarz</button><button class="btn secondary navMini" onclick="prevExercise()" ${app.exerciseIndex===0?"disabled":""}>‹</button><button class="btn secondary navMini" onclick="nextExercise()" ${app.exerciseIndex>=w.exercises.length-1?"disabled":""}>›</button></div><div class="exerciseTop"><div><div class="subtitle">Ćwiczenie ${app.exerciseIndex+1}/${w.exercises.length}</div><div class="exercise-title">${esc(sourceName(row))}</div></div><span class="pill">${modeLabel(mode)}</span></div><div class="exerciseProgress">${w.exercises.map((r,i)=>`<div class="dot ${exerciseDone(r,sess)?"done":i===app.exerciseIndex?"current":""}"></div>`).join("")}</div><div class="stats"><div class="stat"><small>Serie</small><strong>${esc(row.sets_text||sets.length||"-")}</strong></div><div class="stat"><small>Powt.</small><strong>${esc(row.reps_text||"-")}</strong></div><div class="stat"><small>Przerwa</small><strong>${esc(row.rest_text||"-")}</strong></div></div>${modeSwitchHTML(mode)}${videoBlock(row)}${rx.length?`<div class="note"><strong>Rozpiska tygodnia ${sess.week}</strong><div class="rxLine">${rx.map(s=>`<span class="rxPill gold">${esc(formatProgressionSet(s))}</span>`).join("")}</div></div>`:""}<div class="note"><strong>Uwagi trenera</strong><br>${esc(row.notes||"Brak uwag")}</div>${skipped?`<div class="note" style="border:1px solid #92400e"><strong>Ćwiczenie pominięte</strong><br>${esc(skipped.reason)}</div>`:modeCompletionHTML(row,mode,sets)}${mode==="sets"&&!skipped?`<div class="actions"><button class="btn secondary" onclick="addSet()">+ Seria</button><button class="btn secondary" onclick="removeSet()">− Usuń</button></div>`:""}<div class="actions"><button class="btn secondary" onclick="skipExercise()">Pomiń ćwiczenie</button><button class="btn secondary" onclick="unskipExercise()">Cofnij pominięcie</button></div><textarea class="sessionNote" placeholder="Notatka do całego treningu" oninput="app.draft.sessionNotes[sessionKey()] = this.value; saveDraft()">${esc(app.draft.sessionNotes[sessionKey()]||"")}</textarea></section>`;
+}
+function modeLabel(mode){return mode==="time"?"czas":mode==="done"?"wykonane":"serie"}
+function modeSwitchHTML(mode){return `<div class="actions" style="grid-template-columns:repeat(3,1fr);margin:10px 0"><button class="btn ${mode==="sets"?"":"secondary"}" onclick="setExerciseMode('sets')">Serie</button><button class="btn ${mode==="time"?"":"secondary"}" onclick="setExerciseMode('time')">Czas</button><button class="btn ${mode==="done"?"":"secondary"}" onclick="setExerciseMode('done')">Wykonane</button></div>`}
+function videoBlock(row){const url=row.exercises?.youtube_url||"";if(!url)return"";const id=String(url).match(/(?:youtu\.be\/|v=|embed\/)([A-Za-z0-9_-]{6,})/)?.[1];return id?`<div class="embed"><iframe src="https://www.youtube.com/embed/${esc(id)}" allowfullscreen></iframe></div>`:`<a class="btn secondary full" href="${esc(url)}" target="_blank" rel="noreferrer">Otwórz film</a>`}
+function setHTML(row,set,i,sets){
+  return `<div class="set ${set.done?"done":""}"><div class="doneCompact"><strong>${esc(set.note)}</strong><button class="btn tiny secondary" onclick="toggleSet('${row.id}','${set.id}')">Edytuj</button></div><div class="openSet"><div class="set-head"><span>${i+1}. ${esc(set.note)}</span><button class="btn tiny ${set.done?"secondary":"good"}" onclick="toggleSet('${row.id}','${set.id}')">${set.done?"Cofnij":"Zrobione"}</button></div><div class="inputs"><label class="small">kg<input inputmode="decimal" value="${esc(set.kg)}" oninput="updateSet('${row.id}','${set.id}','kg',this.value)"></label><label class="small">powt.<input inputmode="decimal" value="${esc(set.reps)}" oninput="updateSet('${row.id}','${set.id}','reps',this.value)"></label><label class="small">RPE<input inputmode="decimal" value="${esc(set.rpe)}" oninput="updateSet('${row.id}','${set.id}','rpe',this.value)"></label></div><textarea style="margin-top:8px" placeholder="Notatka do serii" oninput="updateSet('${row.id}','${set.id}','freeNote',this.value)">${esc(set.freeNote||"")}</textarea></div></div>`;
+}
+function modeCompletionHTML(row,mode,sets){
+  if(mode==="sets")return sets.map((set,i)=>setHTML(row,set,i,sets)).join("");
+  const set=sets[0]||defaultSets(row,currentSession())[0],title=mode==="time"?"Wykonanie na czas":"Ćwiczenie do wykonania";
+  const detail=mode==="time"?`<label class="small">czas / wynik<input value="${esc(set.reps)}" oninput="updateSet('${row.id}','${set.id}','reps',this.value)"></label>`:`<div class="subtitle">${esc(row.reps_text&&row.reps_text!=="-"?row.reps_text:"Oznacz ćwiczenie jako wykonane.")}</div>`;
+  return `<div class="set ${set.done?"done":""}"><div class="set-head"><span>${title}</span><button class="btn tiny ${set.done?"secondary":"good"}" onclick="toggleSet('${row.id}','${set.id}')">${set.done?"Cofnij":"Zrobione"}</button></div>${detail}<textarea style="margin-top:8px" placeholder="Notatka do ćwiczenia" oninput="updateSet('${row.id}','${set.id}','freeNote',this.value)">${esc(set.freeNote||"")}</textarea></div>`;
+}
+function updateSet(rowId,setId,field,value){const row=app.trainingExercises.find(r=>r.id===rowId);const s=setsFor(row).find(x=>x.id===setId);if(s)s[field]=value;saveDraft()}
+function toggleSet(rowId,setId){const row=app.trainingExercises.find(r=>r.id===rowId),s=setsFor(row).find(x=>x.id===setId);if(!s)return;s.done=!s.done;render();if(s.done&&exerciseDone(row))celebrateNext()}
+function addSet(){const row=exercise(),sets=setsFor(row);sets.push({id:uid(),note:`Seria ${sets.length+1}`,kg:"",reps:String(row.reps_text||""),rpe:"",done:false,freeNote:""});render()}
+function removeSet(){const row=exercise(),sets=setsFor(row);if(sets.length>1)sets.pop();render()}
+function skipExercise(){const reason=prompt("Dlaczego pomijasz ćwiczenie? Wpisz krótką notatkę dla trenera.");if(!reason||!reason.trim())return showToast("Notatka jest wymagana");app.draft.skips[exerciseKey(exercise(),currentSession())]={reason:reason.trim(),at:new Date().toISOString()};render()}
+function unskipExercise(){delete app.draft.skips[exerciseKey(exercise(),currentSession())];render()}
+function nextExercise(){const w=workout();app.exerciseIndex=Math.min(w.exercises.length-1,app.exerciseIndex+1);render();scrollToTop()}
+function prevExercise(){app.exerciseIndex=Math.max(0,app.exerciseIndex-1);render();scrollToTop()}
+function celebrateNext(){const w=workout();if(app.exerciseIndex>=w.exercises.length-1){showToast("Trening gotowy do zapisu");render();return}app.exerciseIndex++;showToast("Ćwiczenie zrobione");render();scrollToTop()}
+function finishHTML(sess){
+  const w=workoutForSession(sess),saved=isDbDone(sess);
+  const items=w.exercises.map(row=>summaryForExercise(row,sess)).join("");
+  return `<section class="finishScreen"><div class="finishHero"><h2>${saved?"Trening zapisany":"Dobra robota!"}</h2><div class="subtitle">${saved?"Ten trening jest już w Supabase.":"Trening wykonany. Zapisz go do Supabase, żeby trener widział raport."}</div></div><div class="list">${items}</div><textarea class="sessionNote" placeholder="Notatka do całego treningu" oninput="app.draft.sessionNotes[sessionKey(sess)] = this.value; saveDraft()">${esc(app.draft.sessionNotes[sessionKey(sess)]||dbForSession(sess)?.session_note||"")}</textarea><div class="actions"><button class="btn secondary" onclick="exitSession()">Kalendarz</button>${saved?`<button class="btn secondary" onclick="reloadCurrent()">Odśwież</button>`:`<button class="btn good" onclick="saveWorkout('${sess.id}')">Zapisz do Supabase</button>`}</div></section>`;
+}
+function summaryForExercise(row,sess){
+  const skip=skipFor(row,sess),sets=setsFor(row,sess);
+  return `<div class="doneItem"><strong>${skip?"⚠️":"✅"} ${esc(sourceName(row))}</strong><div class="subtitle">${skip?`Pominięte: ${esc(skip.reason)}`:sets.map(formatSetSummary).join(" / ")||"brak serii"}</div></div>`;
+}
+function formatSetSummary(s){return `${esc(s.kg||"-")}${s.kg?"kg":""} × ${esc(s.reps||"-")}${s.rpe?` · RPE ${esc(s.rpe)}`:""}` }
+async function saveWorkout(sessionId){
+  const sess=schedule().find(s=>s.id===sessionId)||currentSession(),w=workoutForSession(sess);
+  const completed=w.exercises.filter(row=>exerciseDone(row,sess)).length,total=w.exercises.length;
+  const payload={athlete_id:app.athlete.id,plan_id:app.plan.id,source_plan_key:app.sourcePlanKey,client_key:app.athlete.client_key,session_id:sess.id,workout_date:sess.date,performed_date:todayISO(),week_number:sess.week,workout_id:String(sess.workoutNum),workout_name:w.name,status:completed>=total?"done":"partial",completed_exercises:completed,total_exercises:total,session_note:app.draft.sessionNotes[sessionKey(sess)]||null,recorded_at:new Date().toISOString()};
+  try{
+    showToast("Zapisywanie treningu…");
+    const {data,error}=await sb.from("workout_sessions").upsert(payload,{onConflict:"athlete_id,source_plan_key,session_id"}).select("id").single();
+    if(error)throw error;
+    const workoutSessionId=data.id;
+    const del=await sb.from("workout_set_logs").delete().eq("workout_session_id",workoutSessionId);
+    if(del.error)throw del.error;
+    const rows=[];
+    for(const row of w.exercises){
+      const skip=skipFor(row,sess);
+      if(skip){
+        rows.push(setLogPayload(workoutSessionId,sess,row,{note:`Pominięte: ${skip.reason}`,set_no:1,planned_label:"Pominięte",done:true}));
+        continue;
+      }
+      setsFor(row,sess).forEach((set,i)=>rows.push(setLogPayload(workoutSessionId,sess,row,{set_no:i+1,planned_label:set.note,kg:nullableNumber(set.kg),reps_text:set.reps||null,rpe:nullableNumber(set.rpe),done:!!set.done,note:set.freeNote||null})));
+    }
+    if(rows.length){const ins=await sb.from("workout_set_logs").insert(rows);if(ins.error)throw ins.error}
+    clearSessionDraft(sess);
+    await loadPlanBundle();
+    showToast("Trening zapisany w Supabase");
+  }catch(err){console.error(err);setStatus("Błąd zapisu treningu","err");showToast("Nie udało się zapisać treningu");render()}
+}
+function setLogPayload(workoutSessionId,sess,row,extra){return{workout_session_id:workoutSessionId,athlete_id:app.athlete.id,plan_id:app.plan.id,source_plan_key:app.sourcePlanKey,client_key:app.athlete.client_key,session_id:sess.id,exercise_no:row.exercise_no||null,exercise_name:sourceName(row),recorded_at:new Date().toISOString(),...extra}}
+function clearSessionDraft(sess){for(const row of workoutForSession(sess).exercises){delete app.draft.logs[exerciseKey(row,sess)];delete app.draft.skips[exerciseKey(row,sess)]}delete app.draft.sessionNotes[sessionKey(sess)];saveDraft()}
+function renderPlan(){
+  const week=Number(app.previewWeek)||nextPendingSession()?.week||1;
+  $("view").innerHTML=`<div class="weekPicker">${Array.from({length:Number(app.plan.weeks)||1},(_,i)=>i+1).map(w=>`<button class="weekPick ${w===week?"active":""}" onclick="app.previewWeek=${w};renderPlan()">T${w}</button>`).join("")}</div><section class="card"><h2>Tydzień ${week}</h2><div class="subtitle" style="margin-bottom:12px">${esc(app.plan.name)} · ${esc(app.plan.status||"active")}</div>${weekNotes(week)}<div class="list">${workouts().map(w=>planWorkoutHTML(w,week)).join("")}</div></section>`;
+}
+function planWorkoutHTML(w,week){return `<div class="item"><strong>${esc(w.name)}</strong><div class="subtitle">${esc(w.focus||"")}</div>${w.exercises.map(row=>planExerciseHTML(row,week)).join("")}</div>`}
+function planExerciseHTML(row,week){const rx=progressionFor(row,week),base=[row.sets_text,row.reps_text,row.rest_text,row.load_text,row.tempo_text].filter(Boolean).join(" · ");return `<div class="summaryLine" style="display:block"><strong>${esc(row.exercise_no||"")} ${esc(sourceName(row))}</strong><div class="subtitle">${esc(base||row.notes||"")}</div>${rx.length?`<div class="rxLine">${rx.map(s=>`<span class="rxPill gold">${esc(formatProgressionSet(s))}</span>`).join("")}</div>`:""}</div>`}
+function renderMeasurements(){
+  const key=todayISO(),vals=app.draft.measurements[key]||{},week=nextPendingSession()?.week||currentSession()?.week||1;
+  $("view").innerHTML=`<section class="card"><h2>Pomiary i waga</h2><div class="subtitle" style="margin-bottom:14px">Data ${key} · tydzień ${week}</div>${MEASUREMENTS.map(([col,label,unit])=>`<label class="measure-row"><span>${label}</span><input inputmode="decimal" placeholder="${unit}" value="${esc(vals[col]||"")}" oninput="setMeasurement('${col}',this.value)"></label>`).join("")}<button class="btn good full" onclick="saveMeasurements()">Zapisz pomiary</button></section><section class="card" style="margin-top:12px"><h2>Poprzednie pomiary</h2>${measurementHistoryHTML()}</section>`;
+}
+function setMeasurement(col,value){const key=todayISO();app.draft.measurements[key]=app.draft.measurements[key]||{};app.draft.measurements[key][col]=value;saveDraft()}
+async function saveMeasurements(){
+  const date=todayISO(),vals=app.draft.measurements[date]||{},week=nextPendingSession()?.week||currentSession()?.week||1;
+  const payload={athlete_id:app.athlete.id,plan_id:app.plan.id,source_plan_key:app.sourcePlanKey,client_key:app.athlete.client_key,measurement_date:date,week_number:week,recorded_at:new Date().toISOString()};
+  for(const [col] of MEASUREMENTS)payload[col]=nullableNumber(vals[col]);
+  try{
+    const {error}=await sb.from("athlete_measurements").upsert(payload,{onConflict:"athlete_id,source_plan_key,measurement_date"});
+    if(error)throw error;
+    delete app.draft.measurements[date];saveDraft();await loadPlanBundle();showToast("Pomiary zapisane w Supabase");
+  }catch(err){console.error(err);showToast("Nie udało się zapisać pomiarów")}
+}
+function measurementHistoryHTML(){
+  if(!app.measurements.length)return`<div class="empty">Brak pomiarów dla tego planu.</div>`;
+  return `<div class="historyTable"><table><thead><tr><th>Data</th><th>Tydz.</th>${MEASUREMENTS.map(([,label])=>`<th>${label}</th>`).join("")}</tr></thead><tbody>${app.measurements.map(r=>`<tr><td>${esc(r.measurement_date)}</td><td>${esc(r.week_number||"-")}</td>${MEASUREMENTS.map(([col])=>`<td>${esc(r[col]??"-")}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+function renderHistory(){
+  const rows=[...app.sessions].sort((a,b)=>String(b.workout_date||"").localeCompare(String(a.workout_date||"")));
+  $("view").innerHTML=`<section class="card"><h2>Log treningowy</h2><div class="subtitle" style="margin-bottom:12px">${rows.length} treningów zapisanych w Supabase</div>${rows.length?`<div class="list">${rows.map(historySessionHTML).join("")}</div>`:`<div class="empty">Brak zapisanych treningów.</div>`}</section>`;
+}
+function historySessionHTML(s){
+  const logs=app.setLogs.filter(l=>l.workout_session_id===s.id),exCount=new Set(logs.map(l=>`${l.exercise_no}|${l.exercise_name}`)).size;
+  return `<button class="item planButton" onclick="setSession('${esc(s.session_id)}')"><strong>${esc(s.workout_name)} · tydz. ${esc(s.week_number)}</strong><div class="subtitle">${esc(s.performed_date||s.workout_date)} · ${esc(s.status)} · ${exCount} ćwiczeń · ${logs.filter(l=>l.done).length} serii</div></button>`;
+}
+function renderClient(){
+  const st=currentPlanStats();
+  $("view").innerHTML=`<section class="card"><h2>${esc(app.athlete.name)}</h2><div class="subtitle">${esc(app.athlete.client_key)} · ${esc(app.athlete.status||"active")}</div><div class="metaGrid"><div class="metaBox"><small>Plan</small><strong>${esc(app.plan.name)}</strong></div><div class="metaBox"><small>Start</small><strong>${esc(app.plan.start_date)}</strong></div><div class="metaBox"><small>Postęp</small><strong>${st.done}/${st.total}</strong></div><div class="metaBox"><small>Źródło</small><strong>Supabase</strong></div></div><button class="btn secondary full" onclick="changeClient()">Zmień podopiecznego</button></section><section class="card" style="margin-top:12px"><h2>Przypisane plany</h2><div class="list">${app.links.map(l=>`<div class="item ${l.plan_id===app.plan.id?"activePlan":""}"><strong>${esc(l.plans?.name||l.plan_id)}</strong><div class="subtitle">${esc(l.plans?.status||"")} · ${esc(l.plans?.start_date||"-")}</div></div>`).join("")}</div></section>`;
+}
+function changeClient(){app.athlete=null;app.plan=null;history.replaceState(null,"",location.pathname);render()}
+function scrollToTop(){requestAnimationFrame(()=>scrollTo({top:0,behavior:"smooth"}))}
+async function reloadCurrent(){setStatus("Odświeżanie…","loading");render();await loadPlanBundle()}
+init();
+</script>
+</body>
+</html>
