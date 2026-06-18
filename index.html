@@ -256,6 +256,7 @@ h3{font-size:15px;line-height:1.25;margin:0}
 .exerciseProgress{display:flex;gap:5px;margin-top:12px}
 .dot{height:5px;flex:1;border-radius:3px;background:#dde0dc}
 .dot.done,.dot.current{background:var(--accent)}
+.dot.superset{box-shadow:inset 0 0 0 1px rgba(78,122,94,.28)}
 .session-body{padding:26px 20px 30px}
 .exercise-code{color:var(--accent);font-size:12px;font-weight:700}
 .exercise-title{font-family:"Archivo","Public Sans",sans-serif;font-size:27px;line-height:1.08;margin:5px 0 12px;overflow-wrap:anywhere}
@@ -297,6 +298,38 @@ h3{font-size:15px;line-height:1.25;margin:0}
 .check-btn.done{border-color:var(--accent);background:var(--accent);color:#fff}
 .check-btn svg{width:22px;height:22px}
 .add-set{width:100%;min-height:44px;border:1px dashed #cfd3cd;border-radius:9px;background:transparent;color:var(--muted);font-weight:600}
+.superset-body{padding-top:22px}
+.superset-kicker{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--accent);font-size:11px;font-weight:700;text-transform:uppercase}
+.superset-title{margin:5px 0 6px;font-family:"Archivo","Public Sans",sans-serif;font-size:25px;line-height:1.12}
+.superset-subtitle{color:var(--muted);font-size:12px;line-height:1.45}
+.superset-rounds{display:grid;gap:14px;margin-top:20px}
+.superset-round{padding:12px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.48)}
+.superset-round.current{border-color:var(--accent-line,#c9ddd0);background:var(--accent-soft)}
+.superset-round-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px;color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase}
+.superset-round.current .superset-round-head{color:var(--accent-ink)}
+.superset-step{padding:10px;border:1px solid transparent;border-radius:10px;background:#fff}
+.superset-step+.superset-step{margin-top:8px}
+.superset-step.done{border-color:var(--accent)}
+.superset-step.locked{opacity:.46}
+.superset-step.locked input,.superset-step.locked select,.superset-step.locked button{pointer-events:none}
+.superset-step-head{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:8px;align-items:center;margin-bottom:8px}
+.superset-member{width:28px;height:28px;display:grid;place-items:center;border-radius:8px;background:var(--accent-soft);color:var(--accent-ink);font-size:12px;font-weight:700}
+.superset-step-title{min-width:0}
+.superset-step-title strong{display:block;font-size:12.5px;overflow-wrap:anywhere}
+.superset-step-title small{display:block;margin-top:1px;color:var(--muted);font-size:10px}
+.superset-step .technique-btn{min-height:30px;margin:0;padding:0 4px;font-size:0}
+.superset-step .technique-btn .play{width:27px;height:27px}
+.superset-inputs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 68px 44px;gap:7px;align-items:center}
+.superset-inputs input,.superset-inputs select{width:100%;height:44px;min-width:0;border:1px solid #e2e3df;border-radius:9px;background:#fff;color:var(--ink);text-align:center;font-size:15px;font-weight:700;outline:0}
+.superset-inputs .check-btn{width:42px;height:42px}
+.superset-coach-note{margin:8px 0 0;padding:8px 10px;border-radius:8px;background:var(--accent-soft);color:var(--accent-ink);font-size:10.5px;line-height:1.4}
+.superset-tools{display:grid;gap:9px;margin-top:15px}
+.superset-tool{padding:11px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.superset-tool-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.superset-tool-head strong{font-size:12px}
+.superset-tool-actions{display:flex;gap:6px;flex-wrap:wrap}
+.superset-tool textarea{width:100%;min-height:50px;padding:8px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);resize:vertical}
+.finish-group-label{padding:9px 13px;background:var(--accent-soft);color:var(--accent-ink);font-size:10px;font-weight:700;text-transform:uppercase}
 .exercise-note-row{margin-top:14px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:#fff}
 .exercise-note-row textarea{min-height:50px;border:0;padding:2px;background:transparent}
 .time-card,.done-card{margin-top:18px}
@@ -432,7 +465,7 @@ h3{font-size:15px;line-height:1.25;margin:0}
 </nav>
 </div><div id="modalRoot"></div>
 <script>
-const FRONTEND_VERSION="v0.3.0-studio";
+const FRONTEND_VERSION="v0.4.0-supersets";
 const SUPABASE_URL="https://matuflemwleglsrzrlkp.supabase.co";
 const SUPABASE_KEY="sb_publishable_D1z2s-S-GrnWH9u9D8P1nA_H3T9W7hF";
 function bootError(message){
@@ -562,6 +595,7 @@ function schedule(){
 function workout(id=state.workoutId){return PLAN.find(w=>Number(w.id)===Number(id))||PLAN[0]}
 function currentSession(){return schedule().find(s=>s.id===state.activeSessionId)||nextPendingSession()||schedule()[0]}
 function exercise(){const w=workout();return w.exercises[Math.min(state.exerciseIndex,w.exercises.length-1)]||{no:"",name:"Brak ćwiczeń",sets:1,reps:"-",rest:"-",notes:"",type:""}}
+function exerciseById(id,w=workout()){return w.exercises.find(ex=>String(ex.id)===String(id))||null}
 function exerciseKey(ex=exercise(),sess=currentSession()){return planKey(`${sess.id}__E${ex.no}`)}
 function serverSessionKey(sess=currentSession()){return planKey(`${sess.id}`)}
 function serverStatusFor(sess=currentSession()){state.serverStatus=state.serverStatus||{};return state.serverStatus[serverSessionKey(sess)]||null}
@@ -581,6 +615,25 @@ function nextPendingSession(){
 function sessionLetter(workoutId){return Number(workoutId)%2===0?"B":"A"}
 function trainingDisplayName(w){const raw=String(w?.name||"").trim();if(raw&&!/^\d+\s*TRENING$/i.test(raw))return raw;return `Trening ${sessionLetter(w?.id||1)}${w?.focus?` — ${w.focus}`:""}`}
 function exerciseCode(exIndex=state.exerciseIndex,sess=currentSession()){return `${sessionLetter(sess.workoutId)}${exIndex+1}`}
+function normalizedSupersetKey(ex){return String(ex?.supersetKey||"").trim().toLowerCase()}
+function supersetGroupForExercise(ex=exercise(),w=workout(),sess=currentSession()){
+  const key=normalizedSupersetKey(ex);
+  if(!key)return null;
+  const members=w.exercises.filter(item=>normalizedSupersetKey(item)===key);
+  if(members.length<2||members.some(item=>exerciseMode(item,sess)!=="sets"))return null;
+  const indexes=members.map(item=>w.exercises.indexOf(item)).filter(index=>index>=0);
+  return {key,label:members.find(item=>item.groupLabel)?.groupLabel||"Superseria",members,indexes,startIndex:Math.min(...indexes),endIndex:Math.max(...indexes)};
+}
+function currentSuperset(){return supersetGroupForExercise(exercise())}
+function supersetMemberLabel(ex,group){const index=group.members.findIndex(item=>item.id===ex.id);return String.fromCharCode(65+Math.max(0,index))}
+function supersetSequence(group,sess=currentSession()){
+  const active=group.members.filter(ex=>!exerciseSkipped(ex,sess));
+  const rounds=Math.max(0,...active.map(ex=>setsFor(ex,sess).length));
+  const sequence=[];
+  for(let round=0;round<rounds;round++)active.forEach(ex=>{const set=setsFor(ex,sess)[round];if(set)sequence.push({ex,set,round,setIndex:round})});
+  return {rounds,sequence};
+}
+function supersetDone(group,sess=currentSession()){return group.members.every(ex=>exerciseDone(ex,sess))}
 function seriesWord(value){const n=Math.abs(Math.trunc(Number(value)));if(n===1)return"seria";if(n%10>=2&&n%10<=4&&!(n%100>=12&&n%100<=14))return"serie";return"serii"}
 function seriesText(value){return `${value} ${seriesWord(value)}`}
 function plannedSetCount(ex,sess=currentSession()){const prescribed=prescriptionForCurrentWeek(ex,sess);if(Array.isArray(prescribed)&&prescribed.length)return prescribed.length;return countSets(ex)}
@@ -696,21 +749,77 @@ function renderCalendar(){
 function renderSession(){
   const sess=currentSession(),w=workout(sess.workoutId);
   if(sessionDone(sess)){document.getElementById("view").innerHTML=finishHTML(sess);return}
+  const group=currentSuperset();
+  if(group){renderSupersetSession(sess,w,group);return}
   const ex=exercise(),mode=exerciseMode(ex,sess),sets=setsFor(ex),skipped=skipFor(ex,sess),video=videoForExercise(ex.name);
   const rawSets=String(ex.sets||"").trim(),rawReps=String(ex.reps||"").trim();
   const setLabel=mode==="sets"&&rawSets&&!/^[-—]$/.test(rawSets)?esc(seriesText(rawSets)):"";
   const repLabel=rawReps&&!/^[-—]$/.test(rawReps)?(mode==="time"?esc(rawReps):`${esc(rawReps)} powt.`):"";
   const chips=[setLabel,repLabel,sets[0]?.kg?`cel ${esc(sets[0].kg)} kg`:""].filter(Boolean);
   const content=skipped?`<div class="progression-note"><strong>Ćwiczenie pominięte.</strong><br>${esc(skipped.reason)}</div>`:mode==="time"?timeHTML(sets[0]):mode==="done"?doneHTML(sets[0]):`<div class="sets-table"><div class="sets-head"><span>Nr</span><span>kg</span><span>powt.</span><span>RPE</span><span></span></div>${sets.map((s,i)=>setHTML(s,i,sets)).join("")}<button class="add-set" onclick="addSet()">+ Dodaj serię</button></div>`;
-  document.getElementById("view").innerHTML=`<div class="session-shell"><header class="session-head"><div class="session-head-row"><button class="icon-btn" onclick="exitSession()" aria-label="Zamknij trening"><i data-lucide="x"></i></button><div class="session-head-title">${esc(trainingDisplayName(w))}</div><div class="session-count">${state.exerciseIndex+1} / ${w.exercises.length}</div></div><div class="exerciseProgress">${w.exercises.map((e,i)=>`<span class="dot ${exerciseDone(e,sess)?"done":i===state.exerciseIndex?"current":""}"></span>`).join("")}</div></header><main class="session-body"><div class="exercise-code">${exerciseCode()}</div><div class="exercise-title">${esc(ex.name)}</div><div class="chips">${chips.map((x,i)=>`<span class="chip ${i===2?"goal":""}">${x}</span>`).join("")}</div>${video?`<button class="technique-btn" onclick="toggleVideo('${esc(ex.name)}')"><span class="play"><i data-lucide="${state.videoOpen[ex.name]?"pause":"play"}"></i></span>${state.videoOpen[ex.name]?"Ukryj technikę":"Zobacz technikę"}</button>${state.videoOpen[ex.name]?videoEmbed(ex.name):""}`:""}${ex.notes?`<div class="progression-note">${esc(ex.notes)}</div>`:""}${modeSwitchHTML(mode)}${content}<div class="exercise-note-row"><textarea placeholder="Notatka do ćwiczenia" oninput="state.notes[exerciseKey()]=this.value;save()">${esc(state.notes[exerciseKey()]||"")}</textarea></div><div class="exercise-tools"><button class="btn ghost tiny" onclick="${skipped?"unskipExercise()":"skipExercise()"}">${skipped?"Cofnij pominięcie":"Pomiń ćwiczenie"}</button>${mode==="sets"?`<button class="btn ghost tiny" onclick="removeSet()">Usuń serię</button>`:""}</div></main><footer class="session-footer"><button class="icon-btn" onclick="prevExercise()" ${state.exerciseIndex===0?"disabled":""} aria-label="Poprzednie ćwiczenie"><i data-lucide="chevron-left"></i></button><button class="btn" onclick="nextExercise()" ${state.exerciseIndex>=w.exercises.length-1?"disabled":""}>Następne ćwiczenie <span aria-hidden="true">→</span></button></footer></div>`;
+  document.getElementById("view").innerHTML=`<div class="session-shell"><header class="session-head"><div class="session-head-row"><button class="icon-btn" onclick="exitSession()" aria-label="Zamknij trening"><i data-lucide="x"></i></button><div class="session-head-title">${esc(trainingDisplayName(w))}</div><div class="session-count">${state.exerciseIndex+1} / ${w.exercises.length}</div></div><div class="exerciseProgress">${sessionProgressHTML(w,sess)}</div></header><main class="session-body"><div class="exercise-code">${exerciseCode()}</div><div class="exercise-title">${esc(ex.name)}</div><div class="chips">${chips.map((x,i)=>`<span class="chip ${i===2?"goal":""}">${x}</span>`).join("")}</div>${video?`<button class="technique-btn" onclick="toggleVideo('${esc(ex.name)}')"><span class="play"><i data-lucide="${state.videoOpen[ex.name]?"pause":"play"}"></i></span>${state.videoOpen[ex.name]?"Ukryj technikę":"Zobacz technikę"}</button>${state.videoOpen[ex.name]?videoEmbed(ex.name):""}`:""}${ex.notes?`<div class="progression-note">${esc(ex.notes)}</div>`:""}${modeSwitchHTML(mode)}${content}<div class="exercise-note-row"><textarea placeholder="Notatka do ćwiczenia" oninput="state.notes[exerciseKey()]=this.value;save()">${esc(state.notes[exerciseKey()]||"")}</textarea></div><div class="exercise-tools"><button class="btn ghost tiny" onclick="${skipped?"unskipExercise()":"skipExercise()"}">${skipped?"Cofnij pominięcie":"Pomiń ćwiczenie"}</button>${mode==="sets"?`<button class="btn ghost tiny" onclick="removeSet()">Usuń serię</button>`:""}</div></main><footer class="session-footer"><button class="icon-btn" onclick="prevExercise()" ${state.exerciseIndex===0?"disabled":""} aria-label="Poprzednie ćwiczenie"><i data-lucide="chevron-left"></i></button><button class="btn" onclick="nextExercise()" ${state.exerciseIndex>=w.exercises.length-1?"disabled":""}>Następne ćwiczenie <span aria-hidden="true">→</span></button></footer></div>`;
+}
+function sessionProgressHTML(w,sess,activeGroup=null){return w.exercises.map((ex,index)=>{const group=supersetGroupForExercise(ex,w,sess),active=activeGroup?group?.key===activeGroup.key:index===state.exerciseIndex;return `<span class="dot ${exerciseDone(ex,sess)?"done":active?"current":""} ${group?"superset":""}"></span>`}).join("")}
+function renderSupersetSession(sess,w,group){
+  if(state.exerciseIndex!==group.startIndex){state.exerciseIndex=group.startIndex;save()}
+  const {rounds,sequence}=supersetSequence(group,sess),firstPending=sequence.findIndex(item=>!item.set.done);
+  const currentRound=firstPending>=0?sequence[firstPending].round:Math.max(0,rounds-1);
+  const indexed=sequence.map((item,index)=>({...item,index}));
+  const roundsHTML=Array.from({length:rounds},(_,round)=>{
+    const items=indexed.filter(item=>item.round===round);
+    const done=items.length&&items.every(item=>item.set.done);
+    return `<section class="superset-round ${round===currentRound&&!done?"current":""}"><div class="superset-round-head"><span>Runda ${round+1} z ${rounds}</span><span>${done?"ukończona":round===currentRound?"teraz":""}</span></div>${items.map(item=>supersetSetHTML(item,group,sess,firstPending)).join("")}</section>`;
+  }).join("");
+  const tools=group.members.map(ex=>supersetExerciseToolsHTML(ex,group,sess)).join("");
+  document.getElementById("view").innerHTML=`<div class="session-shell"><header class="session-head"><div class="session-head-row"><button class="icon-btn" onclick="exitSession()" aria-label="Zamknij trening"><i data-lucide="x"></i></button><div class="session-head-title">${esc(trainingDisplayName(w))}</div><div class="session-count">${group.startIndex+1}–${group.endIndex+1} / ${w.exercises.length}</div></div><div class="exerciseProgress">${sessionProgressHTML(w,sess,group)}</div></header><main class="session-body superset-body"><div class="superset-kicker"><span>${esc(group.label||"Superseria")}</span><span>${group.members.length} ćw.</span></div><div class="superset-title">${group.members.map(ex=>esc(ex.name)).join(" + ")}</div><div class="superset-subtitle">Serie wykonuj naprzemiennie. Odpoczynek dopiero po całej rundzie.</div><div class="superset-rounds">${roundsHTML||`<div class="empty">Brak serii w superserii.</div>`}</div><div class="superset-tools">${tools}</div></main><footer class="session-footer"><button class="icon-btn" onclick="prevExercise()" ${group.startIndex===0?"disabled":""} aria-label="Poprzednie ćwiczenie"><i data-lucide="chevron-left"></i></button><button class="btn" onclick="nextExercise()" ${group.endIndex>=w.exercises.length-1?"disabled":""}>Następne ćwiczenie <span aria-hidden="true">→</span></button></footer></div>`;
+}
+function supersetSetHTML(item,group,sess,firstPending){
+  const {ex,set,setIndex,index,round}=item,locked=firstPending>=0&&index>firstPending&&!set.done,video=videoForExercise(ex.name),showDetails=round===0;
+  return `<article class="superset-step ${set.done?"done":""} ${locked?"locked":""}" data-ss-step="${index}"><div class="superset-step-head"><span class="superset-member">${supersetMemberLabel(ex,group)}</span><span class="superset-step-title"><strong>${esc(ex.name)}</strong><small>seria ${setIndex+1}</small></span>${video&&showDetails?`<button class="technique-btn" onclick="toggleVideo('${esc(ex.name)}')" aria-label="${state.videoOpen[ex.name]?"Ukryj":"Pokaż"} technikę ${esc(ex.name)}"><span class="play"><i data-lucide="${state.videoOpen[ex.name]?"pause":"play"}"></i></span></button>`:""}</div><div class="superset-inputs"><input inputmode="decimal" aria-label="${esc(ex.name)}, kilogramy, seria ${setIndex+1}" placeholder="kg" value="${esc(set.kg)}" oninput="updateExerciseSet('${ex.id}','${set.id}','kg',this.value)"><input inputmode="numeric" aria-label="${esc(ex.name)}, powtórzenia, seria ${setIndex+1}" placeholder="powt." value="${esc(set.reps)}" oninput="updateExerciseSet('${ex.id}','${set.id}','reps',this.value)">${supersetRpeSelectHTML(ex,set,setIndex)}<button class="check-btn ${set.done?"done":""}" onclick="toggleSupersetSet('${ex.id}','${set.id}')" aria-label="${set.done?"Cofnij":"Zalicz"} ${esc(ex.name)}, seria ${setIndex+1}"><i data-lucide="check"></i></button></div>${showDetails&&ex.notes?`<div class="superset-coach-note">${esc(ex.notes)}</div>`:""}${showDetails&&state.videoOpen[ex.name]?videoEmbed(ex.name):""}</article>`;
+}
+function supersetRpeSelectHTML(ex,set,setIndex){return `<select aria-label="${esc(ex.name)}, RPE, seria ${setIndex+1}" onchange="updateExerciseSet('${ex.id}','${set.id}','rpe',this.value)"><option value="">—</option>${[6,7,8,9,10].map(value=>`<option value="${value}" ${String(set.rpe)===String(value)?"selected":""}>${value}</option>`).join("")}</select>`}
+function supersetExerciseToolsHTML(ex,group,sess){
+  const skipped=skipFor(ex,sess);
+  return `<section class="superset-tool"><div class="superset-tool-head"><strong><span class="superset-member" style="display:inline-grid;margin-right:6px">${supersetMemberLabel(ex,group)}</span>${esc(ex.name)}</strong><span class="subtitle">${skipped?"pominięte":seriesText(setsFor(ex,sess).length)}</span></div>${skipped?`<div class="progression-note"><strong>Pominięte:</strong> ${esc(skipped.reason)}</div>`:`<textarea placeholder="Notatka do ${esc(ex.name)}" oninput="updateExerciseNote('${ex.id}',this.value)">${esc(state.notes[exerciseKey(ex)]||"")}</textarea>`}<div class="superset-tool-actions"><button class="btn ghost tiny" onclick="${skipped?`unskipExerciseById('${ex.id}')`:`skipExerciseById('${ex.id}')`}">${skipped?"Cofnij pominięcie":"Pomiń"}</button>${!skipped?`<button class="btn ghost tiny" onclick="addSetForExercise('${ex.id}')">+ Seria</button><button class="btn ghost tiny" onclick="removeSetForExercise('${ex.id}')">Usuń serię</button>`:""}</div></section>`;
 }
 function modeSwitchHTML(mode){return `<div class="mode-switch" role="group" aria-label="Tryb ćwiczenia"><button class="${mode==="sets"?"active":""}" onclick="setExerciseMode('sets')">Serie</button><button class="${mode==="time"?"active":""}" onclick="setExerciseMode('time')">Czas</button><button class="${mode==="done"?"active":""}" onclick="setExerciseMode('done')">Wykonane</button></div>`}
 function rpeSelectHTML(s){return `<select aria-label="RPE" onchange="updateSet('${s.id}','rpe',this.value)"><option value="">—</option>${[6,7,8,9,10].map(v=>`<option value="${v}" ${String(s.rpe)===String(v)?"selected":""}>${v}</option>`).join("")}</select>`}
 function timeHTML(s){s=s||setsFor()[0];return `<div class="card time-card ${s.done?"done":""}"><div class="field"><label>Czas / dystans</label><input inputmode="text" placeholder="np. 12 min" value="${esc(s.reps||"")}" oninput="updateSet('${s.id}','reps',this.value)"></div><div class="field"><label>Poziom / opór</label><input inputmode="text" placeholder="opcjonalnie" value="${esc(s.kg||"")}" oninput="updateSet('${s.id}','kg',this.value)"></div><div class="field"><label>RPE</label>${rpeSelectHTML(s)}</div><button class="btn full" style="margin-top:12px" onclick="toggleSet('${s.id}')">${s.done?"Cofnij":"Zrobione"}</button></div>`}
 function doneHTML(s){s=s||setsFor()[0];return `<div class="card done-card ${s.done?"done":""}"><textarea placeholder="Notatka opcjonalnie" oninput="updateSet('${s.id}','freeNote',this.value)">${esc(s.freeNote||"")}</textarea><button class="btn full" style="margin-top:12px" onclick="toggleSet('${s.id}')">${s.done?"Cofnij":"Zrobione"}</button></div>`}
 function setHTML(s,i,sets){const first=sets.findIndex(x=>!x.done),locked=i>first&&first>=0;return `<div class="set-row ${s.done?"done":""} ${locked?"locked":""}"><span class="set-number">${i+1}</span><input inputmode="decimal" aria-label="Kilogramy, seria ${i+1}" placeholder="kg" value="${esc(s.kg)}" oninput="updateSet('${s.id}','kg',this.value)"><input inputmode="numeric" aria-label="Powtórzenia, seria ${i+1}" placeholder="powt." value="${esc(s.reps)}" oninput="updateSet('${s.id}','reps',this.value)">${rpeSelectHTML(s)}<button class="check-btn ${s.done?"done":""}" onclick="toggleSet('${s.id}')" aria-label="${s.done?"Cofnij serię":"Zalicz serię"} ${i+1}"><i data-lucide="check"></i></button></div>`}
-function updateSet(id,field,value){const s=setsFor().find(x=>x.id===id);if(s)s[field]=value;save()}function previousSetHint(setIndex){const sess=currentSession(),ex=exercise();const past=schedule().filter(x=>x.workoutId===sess.workoutId&&x.date<sess.date).sort((a,b)=>b.date.localeCompare(a.date));for(const ps of past){const arr=state.logs[exerciseKey(ex,ps)];if(arr&&arr[setIndex]&&arr[setIndex].kg)return `${arr[setIndex].kg} kg${arr[setIndex].reps?`×${arr[setIndex].reps}`:""}`}return ""}function skipExercise(){const reason=prompt("Dlaczego pomijasz ćwiczenie? Wpisz krótką notatkę dla trenera.");if(!reason||!reason.trim()){showToast("Notatka jest wymagana");return}state.skips=state.skips||{};state.skips[exerciseKey()]={reason:reason.trim(),at:new Date().toISOString()};save();render()}function unskipExercise(){if(state.skips)delete state.skips[exerciseKey()];save();render()}function toggleSet(id){const sets=setsFor(),idx=sets.findIndex(x=>x.id===id),first=sets.findIndex(x=>!x.done);if(!sets[idx])return;if(!sets[idx].done&&first>=0&&idx>first)return;sets[idx].done=!sets[idx].done;render();if(sets[idx].done&&exerciseDone(exercise()))celebrateNext()}function addSet(){setsFor().push({id:uid(),note:`Seria ${setsFor().length+1}`,kg:"",reps:"",rpe:"",done:false,freeNote:""});render()}function removeSet(){const s=setsFor();if(s.length>1)s.pop();render()}function nextExercise(){const w=workout();state.exerciseIndex=Math.min(w.exercises.length-1,state.exerciseIndex+1);render();scrollToExerciseTop()}function prevExercise(){state.exerciseIndex=Math.max(0,state.exerciseIndex-1);render();scrollToExerciseTop()}
+function updateSet(id,field,value){const s=setsFor().find(x=>x.id===id);if(s)s[field]=value;save()}
+function updateExerciseSet(exerciseId,setId,field,value){const ex=exerciseById(exerciseId);if(!ex)return;const set=setsFor(ex).find(item=>item.id===setId);if(set)set[field]=value;save()}
+function updateExerciseNote(exerciseId,value){const ex=exerciseById(exerciseId);if(!ex)return;state.notes[exerciseKey(ex)]=value;save()}
+function previousSetHint(setIndex){const sess=currentSession(),ex=exercise();const past=schedule().filter(x=>x.workoutId===sess.workoutId&&x.date<sess.date).sort((a,b)=>b.date.localeCompare(a.date));for(const ps of past){const arr=state.logs[exerciseKey(ex,ps)];if(arr&&arr[setIndex]&&arr[setIndex].kg)return `${arr[setIndex].kg} kg${arr[setIndex].reps?`×${arr[setIndex].reps}`:""}`}return ""}
+function skipExercise(){skipExerciseById(exercise().id)}
+function skipExerciseById(exerciseId){const ex=exerciseById(exerciseId);if(!ex)return;const reason=prompt(`Dlaczego pomijasz ${ex.name}? Wpisz krótką notatkę dla trenera.`);if(!reason||!reason.trim()){showToast("Notatka jest wymagana");return}state.skips=state.skips||{};state.skips[exerciseKey(ex)]={reason:reason.trim(),at:new Date().toISOString()};save();render()}
+function unskipExercise(){unskipExerciseById(exercise().id)}
+function unskipExerciseById(exerciseId){const ex=exerciseById(exerciseId);if(ex&&state.skips)delete state.skips[exerciseKey(ex)];save();render()}
+function toggleSet(id){const sets=setsFor(),idx=sets.findIndex(x=>x.id===id),first=sets.findIndex(x=>!x.done);if(!sets[idx])return;if(!sets[idx].done&&first>=0&&idx>first)return;sets[idx].done=!sets[idx].done;render();if(sets[idx].done&&exerciseDone(exercise()))celebrateNext()}
+function toggleSupersetSet(exerciseId,setId){
+  const group=currentSuperset(),ex=exerciseById(exerciseId);
+  if(!group||!ex)return;
+  const {sequence}=supersetSequence(group),targetIndex=sequence.findIndex(item=>item.ex.id===ex.id&&item.set.id===setId),firstPending=sequence.findIndex(item=>!item.set.done);
+  if(targetIndex<0)return;
+  const set=sequence[targetIndex].set;
+  if(!set.done&&firstPending>=0&&targetIndex>firstPending)return;
+  set.done=!set.done;
+  if(set.done&&supersetDone(group)){
+    render();
+    celebrateSupersetNext(group);
+    return;
+  }
+  render();
+  if(set.done)requestAnimationFrame(()=>document.querySelector(`[data-ss-step="${targetIndex+1}"] input`)?.focus());
+}
+function addSet(){addSetForExercise(exercise().id)}
+function addSetForExercise(exerciseId){const ex=exerciseById(exerciseId);if(!ex)return;const sets=setsFor(ex);sets.push({id:uid(),note:`Seria ${sets.length+1}`,kg:"",reps:"",rpe:"",done:false,freeNote:""});render()}
+function removeSet(){removeSetForExercise(exercise().id)}
+function removeSetForExercise(exerciseId){const ex=exerciseById(exerciseId);if(!ex)return;const sets=setsFor(ex);if(sets.length>1)sets.pop();render()}
+function nextExercise(){const w=workout(),group=currentSuperset(),nextIndex=group?group.endIndex+1:state.exerciseIndex+1;state.exerciseIndex=Math.min(w.exercises.length-1,nextIndex);render();scrollToExerciseTop()}
+function prevExercise(){const group=currentSuperset(),previousIndex=group?group.startIndex-1:state.exerciseIndex-1;state.exerciseIndex=Math.max(0,previousIndex);render();scrollToExerciseTop()}
 function celebrateNext(){const w=workout();if(state.exerciseIndex>=w.exercises.length-1){showCelebration("Trening ukończony","Przejdź do podsumowania.",1200,()=>{render();scrollToExerciseTop()});return}const next=w.exercises[state.exerciseIndex+1];showCelebration("Ćwiczenie zrobione",`Dalej: ${next.name}`,900,()=>{state.exerciseIndex++;render();scrollToExerciseTop()})}
+function celebrateSupersetNext(group){const w=workout();if(group.endIndex>=w.exercises.length-1){showCelebration("Superseria ukończona","Przejdź do podsumowania treningu.",1200,()=>{render();scrollToExerciseTop()});return}const next=w.exercises[group.endIndex+1];showCelebration("Superseria ukończona",`Dalej: ${next.name}`,1000,()=>{state.exerciseIndex=group.endIndex+1;render();scrollToExerciseTop()})}
 function showCelebration(title,text,ms,cb){const el=document.createElement("div");el.className="celebrationOverlay";el.innerHTML=`<div class="celebrationCard"><div class="celebrationIcon"><i data-lucide="check"></i></div><div class="celebrationTitle">${esc(title)}</div><div class="subtitle" style="margin-top:6px">${esc(text)}</div></div>`;document.body.appendChild(el);refreshIcons();setTimeout(()=>el.style.opacity="0",ms-250);setTimeout(()=>{el.remove();cb&&cb()},ms)}
 function formatSetSummary(s){if(!s)return"";if((s.note||"")==="Czas")return `${s.reps||"czas?"}${s.kg?` · opór ${s.kg}`:""}${s.rpe?` · RPE ${s.rpe}`:""}`;if((s.note||"")==="Wykonane")return `Wykonane${s.freeNote?`: ${s.freeNote}`:""}`;return `${s.kg||""} kg × ${s.reps||""}${s.rpe?` · RPE ${s.rpe}`:""}`}
 function setSessionRpe(value){state.sessionRpe[sessionKey()]=String(value);save();render()}
@@ -718,7 +827,8 @@ function sessionCompletedSets(sess){const w=workout(sess.workoutId);return w.exe
 function sessionVolume(sess){const w=workout(sess.workoutId);return w.exercises.reduce((sum,ex)=>sum+existingSetsFor(ex,sess).filter(s=>s.done).reduce((n,s)=>n+(Number(String(s.kg).replace(",","."))||0)*(Number(String(s.reps).replace(",","."))||0),0),0)}
 function finishHTML(sess){
   const w=workout(sess.workoutId),saved=!!sess.db&&statusSaysDone(sess),sets=sessionCompletedSets(sess),volume=sessionVolume(sess),rpe=state.sessionRpe[sessionKey(sess)]||averageRpeForSession(sess)||"";
-  const items=w.exercises.map((ex,i)=>{const skip=skipFor(ex,sess),doneSets=existingSetsFor(ex,sess).filter(s=>s.done).length;return `<div class="finish-list-row"><strong>${exerciseCode(i,sess)} · ${esc(ex.name)}</strong><span class="subtitle">${skip?"pominięte":seriesText(doneSets)}</span></div>`}).join("");
+  const shownGroups=new Set();
+  const items=w.exercises.map((ex,i)=>{const skip=skipFor(ex,sess),doneSets=existingSetsFor(ex,sess).filter(s=>s.done).length,group=supersetGroupForExercise(ex,w,sess),groupHeader=group&&!shownGroups.has(group.key)?(shownGroups.add(group.key),`<div class="finish-group-label">${esc(group.label||"Superseria")}</div>`):"";return `${groupHeader}<div class="finish-list-row"><strong>${exerciseCode(i,sess)} · ${esc(ex.name)}</strong><span class="subtitle">${skip?"pominięte":seriesText(doneSets)}</span></div>`}).join("");
   return `<section class="finishScreen"><div class="finishHero"><div class="finish-check"><i data-lucide="check"></i></div><h2>Trening ukończony</h2><div class="subtitle">${esc(trainingDisplayName(w))} · ${dateShort(sessionPerformedDate(sess)||todayKey())}</div><div class="finish-stats"><div><strong>${sets}</strong><span>${seriesWord(sets)}</span></div><div><strong>${w.exercises.length}</strong><span>ćwiczeń</span></div><div><strong>${volume>=1000?(volume/1000).toFixed(1)+" t":Math.round(volume)+" kg"}</strong><span>objętość</span></div></div></div><div class="finish-body"><h3>Jak poszło? Ogólne RPE</h3><div class="subtitle">Jak ciężki był cały trening</div><div class="rpe-grid">${[6,7,8,9,10].map(v=>`<button class="rpe-choice ${String(rpe)===String(v)?"active":""}" onclick="setSessionRpe(${v})">${v}</button>`).join("")}</div><h3>Notatka dla trenera</h3><textarea style="margin-top:10px" placeholder="Jak się czułeś podczas treningu?" oninput="state.sessionNotes[sessionKey()]=this.value;save()">${esc(state.sessionNotes?.[sessionKey(sess)]||"")}</textarea><div class="finish-list">${items}</div></div><footer class="session-footer" style="grid-template-columns:1fr"><button class="btn" onclick="${saved?"exitSession()":`syncWorkout(${JSON.stringify(sess).replace(/"/g,"&quot;")})`}">${saved?"Wróć":"Zapisz trening"}</button></footer></section>`;
 }
 function measurementEntries(){return Object.entries(state.measurements||{}).filter(([key])=>key.startsWith(planId()+"__")).map(([key,values])=>({date:key.split("__")[1]||"",...values})).sort((a,b)=>String(b.date).localeCompare(String(a.date)))}
@@ -758,7 +868,7 @@ function hideModal(){document.getElementById("modalRoot").innerHTML=""}
 function showToast(text){const el=document.createElement("div");el.className="toast";el.textContent=text;document.body.appendChild(el);setTimeout(()=>el.remove(),1400)}
 const MEASUREMENT_COLUMNS={Udo:"udo",Dupa:"dupa",Brzuch:"brzuch",Klatka:"klatka",Biceps:"biceps",Szyja:"szyja",Waga:"waga"};
 function nullableNumber(v){const text=String(v??"").trim().replace(",",".");return /^-?\d+(?:\.\d+)?$/.test(text)?Number(text):null}
-function workoutPayload(sess=currentSession()){const w=workout(sess.workoutId);return{clientId:CLIENT_ID,planId:planId(),sessionRpe:state.sessionRpe?.[sessionKey(sess)]||null,sessionNote:state.sessionNotes?.[sessionKey(sess)]||"",session:{sessionId:sess.id,workoutDate:sess.nominalDate||sess.date||nominalDateFor(sess.week,sess.workoutId),performedDate:todayKey(),week:sess.week,workoutId:w.id,workoutName:w.name,note:state.sessionNotes?.[sessionKey(sess)]||""},exercises:w.exercises.map(ex=>{const skip=skipFor(ex,sess);return{no:ex.no,name:ex.name,skipped:!!skip,skipNote:skip?.reason||"",sets:(state.logs[exerciseKey(ex,sess)]||[]).map((s,i)=>({setNo:i+1,plannedLabel:s.note,kg:s.kg||"",reps:s.reps||"",rpe:s.rpe||"",done:!!s.done,note:s.freeNote||""}))}})}}
+function workoutPayload(sess=currentSession()){const w=workout(sess.workoutId);return{clientId:CLIENT_ID,planId:planId(),sessionRpe:state.sessionRpe?.[sessionKey(sess)]||null,sessionNote:state.sessionNotes?.[sessionKey(sess)]||"",session:{sessionId:sess.id,workoutDate:sess.nominalDate||sess.date||nominalDateFor(sess.week,sess.workoutId),performedDate:todayKey(),week:sess.week,workoutId:w.id,workoutName:w.name,note:state.sessionNotes?.[sessionKey(sess)]||""},exercises:w.exercises.map(ex=>{const skip=skipFor(ex,sess);return{no:ex.no,name:ex.name,supersetKey:ex.supersetKey||null,groupLabel:ex.groupLabel||null,skipped:!!skip,skipNote:skip?.reason||"",sets:(state.logs[exerciseKey(ex,sess)]||[]).map((s,i)=>({setNo:i+1,plannedLabel:s.note,kg:s.kg||"",reps:s.reps||"",rpe:s.rpe||"",done:!!s.done,note:s.freeNote||""}))}})}}
 async function syncWorkout(sess=currentSession()){
   if(!ATHLETE||!DB_PLAN){showToast("Brak aktywnego planu");return}
   const w=workout(sess.workoutId),payload=workoutPayload(sess),completed=w.exercises.filter(ex=>exerciseDone(ex,sess)).length,total=w.exercises.length,skipped=w.exercises.filter(ex=>exerciseSkipped(ex,sess));
@@ -908,7 +1018,7 @@ function prescriptionsFor(te){
 }
 function mapTrainingExercise(te,i){
   const name=trainingExerciseName(te),type=te.mode||te.exercises?.default_mode||te.exercises?.default_category||"";
-  return {id:te.id,no:te.exercise_no||String(i+1),name,sets:te.sets_text||"",reps:te.reps_text||"",rest:te.rest_text||"",notes:te.notes||te.exercises?.notes||"",type,dbExerciseId:te.exercise_id,prescriptions:prescriptionsFor(te)};
+  return {id:te.id,no:te.exercise_no||String(i+1),name,sets:te.sets_text||"",reps:te.reps_text||"",rest:te.rest_text||"",notes:te.notes||te.exercises?.notes||"",type,supersetKey:te.superset_key||"",groupLabel:te.group_label||"",orderIndex:te.order_index,dbExerciseId:te.exercise_id,prescriptions:prescriptionsFor(te)};
 }
 function mapPlanWorkouts(){
   return DB_TRAININGS.slice().sort(byOrder).map((t,i)=>({id:i+1,dbId:t.id,name:t.name||`${i+1} TRENING`,focus:t.focus||"",exercises:DB_TRAINING_EXERCISES.filter(te=>te.training_id===t.id).sort(byOrder).map(mapTrainingExercise)}));
@@ -955,7 +1065,7 @@ async function apiGetPlan(){
     ]);
     DB_TRAININGS=trainings;DB_PROGRESSION_BLOCKS=blocks;DAYS=buildDays(DB_TRAININGS.length);
     const trainingIds=DB_TRAININGS.map(t=>t.id);
-    DB_TRAINING_EXERCISES=trainingIds.length?await must(await sb.from("training_exercises").select("id,training_id,exercise_id,exercise_no,order_index,sets_text,reps_text,rest_text,weight,load_text,tempo_text,use_wg,progression_mode,superset_key,mode,notes,source_name,source_no_text,video_hint,exercises(id,name,youtube_url,notes,default_mode,default_category)").in("training_id",trainingIds).order("order_index")):[];
+    DB_TRAINING_EXERCISES=trainingIds.length?await must(await sb.from("training_exercises").select("id,training_id,exercise_id,exercise_no,order_index,sets_text,reps_text,rest_text,weight,load_text,tempo_text,use_wg,progression_mode,superset_key,group_label,mode,notes,source_name,source_no_text,video_hint,exercises(id,name,youtube_url,notes,default_mode,default_category)").in("training_id",trainingIds).order("order_index")):[];
     const blockIds=DB_PROGRESSION_BLOCKS.map(b=>b.id);
     DB_PROGRESSION_EXERCISES=blockIds.length?await must(await sb.from("progression_exercises").select("id,block_id,exercise_id,training_exercise_id,order_index,source_name,exercises(id,name)").in("block_id",blockIds).order("order_index")):[];
     const peIds=DB_PROGRESSION_EXERCISES.map(x=>x.id);
