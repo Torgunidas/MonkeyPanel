@@ -270,6 +270,10 @@ h3{font-size:15px;line-height:1.25;margin:0}
 .set-row.done{border-color:var(--accent);background:#fff}
 .set-row.locked{opacity:.48}
 .set-row.locked input,.set-row.locked select,.set-row.locked button{pointer-events:none}
+.previous-set-hint{color:var(--accent-ink);font-size:10px;line-height:1.35}
+.set-row .previous-set-hint{grid-column:2/5;margin-top:-2px}
+.superset-step .previous-set-hint{margin:7px 0 0 38px}
+.time-card .previous-set-hint{margin:9px 0 2px}
 .set-number{color:var(--accent);font-size:12px;font-weight:700}
 .set-row input,.set-row select{
   width:100%;
@@ -372,8 +376,16 @@ h3{font-size:15px;line-height:1.25;margin:0}
 .rpe-choice.active{background:var(--accent);border-color:var(--accent);color:#fff}
 .finish-body textarea{width:100%;min-height:92px;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);resize:vertical}
 .finish-list{margin-top:16px;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
-.finish-list-row{display:flex;justify-content:space-between;gap:12px;padding:13px;border-bottom:1px solid var(--line);font-size:12px}
+.finish-list-row{padding:13px;border-bottom:1px solid var(--line);font-size:12px}
 .finish-list-row:last-child{border-bottom:0}
+.finish-exercise-head{display:flex;justify-content:space-between;gap:12px;align-items:start}
+.finish-set-list{display:grid;gap:6px;margin-top:10px}
+.finish-set-row{display:grid;grid-template-columns:48px minmax(0,1fr);gap:8px;padding:8px 9px;border-radius:8px;background:#f7f8f5;line-height:1.35}
+.finish-set-row .set-label{color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase}
+.finish-set-row .set-value{font-weight:600;overflow-wrap:anywhere}
+.finish-set-row .set-note{grid-column:2;color:var(--muted);font-size:10px}
+.history-detail-note{margin:16px 0 0;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:12px;line-height:1.5}
+.history-detail-note strong{display:block;margin-bottom:4px}
 .history-screen,.measure-screen{padding:20px 18px 28px}
 .month-label{margin:0 0 10px;color:#a3a7ae;font-size:11px;font-weight:700;text-transform:uppercase}
 .history-list{display:grid;gap:10px}
@@ -465,7 +477,7 @@ h3{font-size:15px;line-height:1.25;margin:0}
 </nav>
 </div><div id="modalRoot"></div>
 <script>
-const FRONTEND_VERSION="v0.4.0-supersets";
+const FRONTEND_VERSION="v0.4.1-history-details";
 const SUPABASE_URL="https://matuflemwleglsrzrlkp.supabase.co";
 const SUPABASE_KEY="sb_publishable_D1z2s-S-GrnWH9u9D8P1nA_H3T9W7hF";
 function bootError(message){
@@ -674,13 +686,14 @@ function sessionStatus(sess){if(sessionDone(sess))return"done";const next=nextPe
 function statusLabel(s,sess){if(s==="done"){const d=sessionPerformedDate(sess);return d?`wykonany ${dateLabel(d)}`:"wykonany"}return s==="due"?"następny":"przyszły"}
 function setView(v){state.view=v;state.mode="calendar";state.week=activePlanWeek();save();render();scrollToExerciseTop()}
 function setSession(sess){state.returnView=state.view||"plan";state.activeSessionId=sess.id;state.workoutId=sess.workoutId;state.week=sess.week;state.exerciseIndex=0;state.mode="session";save();render();scrollToExerciseTop()}
+function openHistorySession(sess){state.returnView="history";state.activeSessionId=sess.id;state.workoutId=sess.workoutId;state.week=sess.week;state.exerciseIndex=0;state.mode="history-detail";save();render();scrollToExerciseTop()}
 function exitSession(){state.mode="calendar";state.view=state.returnView||"plan";save();render();scrollToExerciseTop()}
 function overallProgress(){const s=schedule();return s.length?Math.round(s.filter(x=>sessionDone(x)).length/s.length*100):0}
 function currentPlanStats(){const s=schedule();const done=s.filter(x=>sessionDone(x)).length;const next=nextPendingSession();return{done,missed:0,total:s.length,progress:s.length?Math.round(done/s.length*100):0,nextWeek:next?next.week:"-",nextWorkout:next?next.workoutId:"-"}}
 function rememberPlan(){const st=currentPlanStats();state.planArchive[planId()]={planId:planId(),planName:CURRENT_PLAN.planName||planId(),planStatus:CURRENT_PLAN.planStatus||"active",lastSeen:todayKey(),done:st.done,total:st.total,progress:st.progress,startDate:START_DATE};save()}
 function render(){
   rememberPlan();save();
-  const inSession=state.mode==="session";
+  const inSession=state.mode==="session"||state.mode==="history-detail";
   document.getElementById("app").classList.toggle("session-active",inSession);
   document.getElementById("appHeader").classList.toggle("hidden",inSession);
   document.getElementById("bottomNav").classList.toggle("hidden",inSession);
@@ -748,6 +761,7 @@ function renderCalendar(){
 }
 function renderSession(){
   const sess=currentSession(),w=workout(sess.workoutId);
+  if(state.mode==="history-detail"){document.getElementById("view").innerHTML=historyDetailHTML(sess);return}
   if(sessionDone(sess)){document.getElementById("view").innerHTML=finishHTML(sess);return}
   const group=currentSuperset();
   if(group){renderSupersetSession(sess,w,group);return}
@@ -775,7 +789,8 @@ function renderSupersetSession(sess,w,group){
 }
 function supersetSetHTML(item,group,sess,firstPending){
   const {ex,set,setIndex,index,round}=item,locked=firstPending>=0&&index>firstPending&&!set.done,video=videoForExercise(ex.name),showDetails=round===0;
-  return `<article class="superset-step ${set.done?"done":""} ${locked?"locked":""}" data-ss-step="${index}"><div class="superset-step-head"><span class="superset-member">${supersetMemberLabel(ex,group)}</span><span class="superset-step-title"><strong>${esc(ex.name)}</strong><small>seria ${setIndex+1}</small></span>${video&&showDetails?`<button class="technique-btn" onclick="toggleVideo('${esc(ex.name)}')" aria-label="${state.videoOpen[ex.name]?"Ukryj":"Pokaż"} technikę ${esc(ex.name)}"><span class="play"><i data-lucide="${state.videoOpen[ex.name]?"pause":"play"}"></i></span></button>`:""}</div><div class="superset-inputs"><input inputmode="decimal" aria-label="${esc(ex.name)}, kilogramy, seria ${setIndex+1}" placeholder="kg" value="${esc(set.kg)}" oninput="updateExerciseSet('${ex.id}','${set.id}','kg',this.value)"><input inputmode="numeric" aria-label="${esc(ex.name)}, powtórzenia, seria ${setIndex+1}" placeholder="powt." value="${esc(set.reps)}" oninput="updateExerciseSet('${ex.id}','${set.id}','reps',this.value)">${supersetRpeSelectHTML(ex,set,setIndex)}<button class="check-btn ${set.done?"done":""}" onclick="toggleSupersetSet('${ex.id}','${set.id}')" aria-label="${set.done?"Cofnij":"Zalicz"} ${esc(ex.name)}, seria ${setIndex+1}"><i data-lucide="check"></i></button></div>${showDetails&&ex.notes?`<div class="superset-coach-note">${esc(ex.notes)}</div>`:""}${showDetails&&state.videoOpen[ex.name]?videoEmbed(ex.name):""}</article>`;
+  const previous=previousSetHint(setIndex,ex,sess);
+  return `<article class="superset-step ${set.done?"done":""} ${locked?"locked":""}" data-ss-step="${index}"><div class="superset-step-head"><span class="superset-member">${supersetMemberLabel(ex,group)}</span><span class="superset-step-title"><strong>${esc(ex.name)}</strong><small>seria ${setIndex+1}</small></span>${video&&showDetails?`<button class="technique-btn" onclick="toggleVideo('${esc(ex.name)}')" aria-label="${state.videoOpen[ex.name]?"Ukryj":"Pokaż"} technikę ${esc(ex.name)}"><span class="play"><i data-lucide="${state.videoOpen[ex.name]?"pause":"play"}"></i></span></button>`:""}</div><div class="superset-inputs"><input inputmode="decimal" aria-label="${esc(ex.name)}, kilogramy, seria ${setIndex+1}" placeholder="kg" value="${esc(set.kg)}" oninput="updateExerciseSet('${ex.id}','${set.id}','kg',this.value)"><input inputmode="numeric" aria-label="${esc(ex.name)}, powtórzenia, seria ${setIndex+1}" placeholder="powt." value="${esc(set.reps)}" oninput="updateExerciseSet('${ex.id}','${set.id}','reps',this.value)">${supersetRpeSelectHTML(ex,set,setIndex)}<button class="check-btn ${set.done?"done":""}" onclick="toggleSupersetSet('${ex.id}','${set.id}')" aria-label="${set.done?"Cofnij":"Zalicz"} ${esc(ex.name)}, seria ${setIndex+1}"><i data-lucide="check"></i></button></div>${previous?`<div class="previous-set-hint">${esc(previous)}</div>`:""}${showDetails&&ex.notes?`<div class="superset-coach-note">${esc(ex.notes)}</div>`:""}${showDetails&&state.videoOpen[ex.name]?videoEmbed(ex.name):""}</article>`;
 }
 function supersetRpeSelectHTML(ex,set,setIndex){return `<select aria-label="${esc(ex.name)}, RPE, seria ${setIndex+1}" onchange="updateExerciseSet('${ex.id}','${set.id}','rpe',this.value)"><option value="">—</option>${[6,7,8,9,10].map(value=>`<option value="${value}" ${String(set.rpe)===String(value)?"selected":""}>${value}</option>`).join("")}</select>`}
 function supersetExerciseToolsHTML(ex,group,sess){
@@ -784,13 +799,26 @@ function supersetExerciseToolsHTML(ex,group,sess){
 }
 function modeSwitchHTML(mode){return `<div class="mode-switch" role="group" aria-label="Tryb ćwiczenia"><button class="${mode==="sets"?"active":""}" onclick="setExerciseMode('sets')">Serie</button><button class="${mode==="time"?"active":""}" onclick="setExerciseMode('time')">Czas</button><button class="${mode==="done"?"active":""}" onclick="setExerciseMode('done')">Wykonane</button></div>`}
 function rpeSelectHTML(s){return `<select aria-label="RPE" onchange="updateSet('${s.id}','rpe',this.value)"><option value="">—</option>${[6,7,8,9,10].map(v=>`<option value="${v}" ${String(s.rpe)===String(v)?"selected":""}>${v}</option>`).join("")}</select>`}
-function timeHTML(s){s=s||setsFor()[0];return `<div class="card time-card ${s.done?"done":""}"><div class="field"><label>Czas / dystans</label><input inputmode="text" placeholder="np. 12 min" value="${esc(s.reps||"")}" oninput="updateSet('${s.id}','reps',this.value)"></div><div class="field"><label>Poziom / opór</label><input inputmode="text" placeholder="opcjonalnie" value="${esc(s.kg||"")}" oninput="updateSet('${s.id}','kg',this.value)"></div><div class="field"><label>RPE</label>${rpeSelectHTML(s)}</div><button class="btn full" style="margin-top:12px" onclick="toggleSet('${s.id}')">${s.done?"Cofnij":"Zrobione"}</button></div>`}
+function timeHTML(s){s=s||setsFor()[0];const previous=previousSetHint(0);return `<div class="card time-card ${s.done?"done":""}"><div class="field"><label>Czas / dystans</label><input inputmode="text" placeholder="np. 12 min" value="${esc(s.reps||"")}" oninput="updateSet('${s.id}','reps',this.value)"></div><div class="field"><label>Poziom / opór</label><input inputmode="text" placeholder="opcjonalnie" value="${esc(s.kg||"")}" oninput="updateSet('${s.id}','kg',this.value)"></div><div class="field"><label>RPE</label>${rpeSelectHTML(s)}</div>${previous?`<div class="previous-set-hint">${esc(previous)}</div>`:""}<button class="btn full" style="margin-top:12px" onclick="toggleSet('${s.id}')">${s.done?"Cofnij":"Zrobione"}</button></div>`}
 function doneHTML(s){s=s||setsFor()[0];return `<div class="card done-card ${s.done?"done":""}"><textarea placeholder="Notatka opcjonalnie" oninput="updateSet('${s.id}','freeNote',this.value)">${esc(s.freeNote||"")}</textarea><button class="btn full" style="margin-top:12px" onclick="toggleSet('${s.id}')">${s.done?"Cofnij":"Zrobione"}</button></div>`}
-function setHTML(s,i,sets){const first=sets.findIndex(x=>!x.done),locked=i>first&&first>=0;return `<div class="set-row ${s.done?"done":""} ${locked?"locked":""}"><span class="set-number">${i+1}</span><input inputmode="decimal" aria-label="Kilogramy, seria ${i+1}" placeholder="kg" value="${esc(s.kg)}" oninput="updateSet('${s.id}','kg',this.value)"><input inputmode="numeric" aria-label="Powtórzenia, seria ${i+1}" placeholder="powt." value="${esc(s.reps)}" oninput="updateSet('${s.id}','reps',this.value)">${rpeSelectHTML(s)}<button class="check-btn ${s.done?"done":""}" onclick="toggleSet('${s.id}')" aria-label="${s.done?"Cofnij serię":"Zalicz serię"} ${i+1}"><i data-lucide="check"></i></button></div>`}
+function setHTML(s,i,sets){const first=sets.findIndex(x=>!x.done),locked=i>first&&first>=0,previous=previousSetHint(i);return `<div class="set-row ${s.done?"done":""} ${locked?"locked":""}"><span class="set-number">${i+1}</span><input inputmode="decimal" aria-label="Kilogramy, seria ${i+1}" placeholder="kg" value="${esc(s.kg)}" oninput="updateSet('${s.id}','kg',this.value)"><input inputmode="numeric" aria-label="Powtórzenia, seria ${i+1}" placeholder="powt." value="${esc(s.reps)}" oninput="updateSet('${s.id}','reps',this.value)">${rpeSelectHTML(s)}<button class="check-btn ${s.done?"done":""}" onclick="toggleSet('${s.id}')" aria-label="${s.done?"Cofnij serię":"Zalicz serię"} ${i+1}"><i data-lucide="check"></i></button>${previous?`<span class="previous-set-hint">${esc(previous)}</span>`:""}</div>`}
 function updateSet(id,field,value){const s=setsFor().find(x=>x.id===id);if(s)s[field]=value;save()}
 function updateExerciseSet(exerciseId,setId,field,value){const ex=exerciseById(exerciseId);if(!ex)return;const set=setsFor(ex).find(item=>item.id===setId);if(set)set[field]=value;save()}
 function updateExerciseNote(exerciseId,value){const ex=exerciseById(exerciseId);if(!ex)return;state.notes[exerciseKey(ex)]=value;save()}
-function previousSetHint(setIndex){const sess=currentSession(),ex=exercise();const past=schedule().filter(x=>x.workoutId===sess.workoutId&&x.date<sess.date).sort((a,b)=>b.date.localeCompare(a.date));for(const ps of past){const arr=state.logs[exerciseKey(ex,ps)];if(arr&&arr[setIndex]&&arr[setIndex].kg)return `${arr[setIndex].kg} kg${arr[setIndex].reps?`×${arr[setIndex].reps}`:""}`}return ""}
+function previousExercisePerformance(ex=exercise(),sess=currentSession()){
+  const past=schedule().filter(item=>String(item.id)!==String(sess.id)&&Number(item.workoutId)===Number(sess.workoutId)&&Number(item.week)<Number(sess.week)).sort((a,b)=>(Number(b.week)-Number(a.week))||String(b.date||"").localeCompare(String(a.date||"")));
+  for(const previousSession of past){
+    const sets=existingSetsFor(ex,previousSession);
+    if(sets.some(set=>set.done&&(set.kg||set.reps||set.rpe||set.freeNote)))return{session:previousSession,sets};
+  }
+  return null;
+}
+function previousSetHint(setIndex,ex=exercise(),sess=currentSession()){
+  const previous=previousExercisePerformance(ex,sess),set=previous?.sets?.[setIndex];
+  if(!set||!set.done||!(set.kg||set.reps||set.rpe))return"";
+  const value=formatSetSummary(set,exerciseMode(ex,previous.session));
+  return value?`Poprzednio (${dateShort(sessionPerformedDate(previous.session)||previous.session.date)}): ${value}`:"";
+}
 function skipExercise(){skipExerciseById(exercise().id)}
 function skipExerciseById(exerciseId){const ex=exerciseById(exerciseId);if(!ex)return;const reason=prompt(`Dlaczego pomijasz ${ex.name}? Wpisz krótką notatkę dla trenera.`);if(!reason||!reason.trim()){showToast("Notatka jest wymagana");return}state.skips=state.skips||{};state.skips[exerciseKey(ex)]={reason:reason.trim(),at:new Date().toISOString()};save();render()}
 function unskipExercise(){unskipExerciseById(exercise().id)}
@@ -821,15 +849,36 @@ function prevExercise(){const group=currentSuperset(),previousIndex=group?group.
 function celebrateNext(){const w=workout();if(state.exerciseIndex>=w.exercises.length-1){showCelebration("Trening ukończony","Przejdź do podsumowania.",1200,()=>{render();scrollToExerciseTop()});return}const next=w.exercises[state.exerciseIndex+1];showCelebration("Ćwiczenie zrobione",`Dalej: ${next.name}`,900,()=>{state.exerciseIndex++;render();scrollToExerciseTop()})}
 function celebrateSupersetNext(group){const w=workout();if(group.endIndex>=w.exercises.length-1){showCelebration("Superseria ukończona","Przejdź do podsumowania treningu.",1200,()=>{render();scrollToExerciseTop()});return}const next=w.exercises[group.endIndex+1];showCelebration("Superseria ukończona",`Dalej: ${next.name}`,1000,()=>{state.exerciseIndex=group.endIndex+1;render();scrollToExerciseTop()})}
 function showCelebration(title,text,ms,cb){const el=document.createElement("div");el.className="celebrationOverlay";el.innerHTML=`<div class="celebrationCard"><div class="celebrationIcon"><i data-lucide="check"></i></div><div class="celebrationTitle">${esc(title)}</div><div class="subtitle" style="margin-top:6px">${esc(text)}</div></div>`;document.body.appendChild(el);refreshIcons();setTimeout(()=>el.style.opacity="0",ms-250);setTimeout(()=>{el.remove();cb&&cb()},ms)}
-function formatSetSummary(s){if(!s)return"";if((s.note||"")==="Czas")return `${s.reps||"czas?"}${s.kg?` · opór ${s.kg}`:""}${s.rpe?` · RPE ${s.rpe}`:""}`;if((s.note||"")==="Wykonane")return `Wykonane${s.freeNote?`: ${s.freeNote}`:""}`;return `${s.kg||""} kg × ${s.reps||""}${s.rpe?` · RPE ${s.rpe}`:""}`}
+function formatSetSummary(s,mode=""){
+  if(!s)return"";
+  const note=String(s.note||"").toLowerCase(),parts=[];
+  if(mode==="time"||note==="czas"){
+    if(s.reps)parts.push(String(s.reps));
+    if(s.kg)parts.push(`opór ${s.kg}`);
+  }else if(mode==="done"||note==="wykonane")parts.push("Wykonane");
+  else if(s.kg&&s.reps)parts.push(`${s.kg} kg × ${s.reps}`);
+  else if(s.kg)parts.push(`${s.kg} kg`);
+  else if(s.reps)parts.push(`${s.reps} powt.`);
+  if(s.rpe)parts.push(`RPE ${s.rpe}`);
+  return parts.join(" · ");
+}
+function exerciseDetailsHTML(ex,sess,index){
+  const skip=skipFor(ex,sess),sets=existingSetsFor(ex,sess),mode=exerciseMode(ex,sess);
+  const rows=sets.map((set,setIndex)=>{const value=formatSetSummary(set,mode)||"Brak zapisanych parametrów";return `<div class="finish-set-row"><span class="set-label">Seria ${setIndex+1}</span><span class="set-value">${esc(value)}${set.done?"":` <span class="subtitle">· nieukończona</span>`}</span>${set.freeNote?`<span class="set-note">Notatka: ${esc(set.freeNote)}</span>`:""}</div>`}).join("");
+  return `<div class="finish-list-row"><div class="finish-exercise-head"><strong>${exerciseCode(index,sess)} · ${esc(ex.name)}</strong><span class="subtitle">${skip?"pominięte":seriesText(sets.filter(set=>set.done).length)}</span></div>${skip?`<div class="finish-set-list"><div class="finish-set-row"><span class="set-label">Status</span><span class="set-value">Pominięte</span><span class="set-note">${esc(skip.reason||"")}</span></div></div>`:`<div class="finish-set-list">${rows||`<div class="finish-set-row"><span class="set-label">Serie</span><span class="set-value">Brak zapisanych danych</span></div>`}</div>`}</div>`;
+}
+function workoutExerciseDetailsHTML(w,sess){return w.exercises.map((ex,index)=>exerciseDetailsHTML(ex,sess,index)).join("")}
 function setSessionRpe(value){state.sessionRpe[sessionKey()]=String(value);save();render()}
 function sessionCompletedSets(sess){const w=workout(sess.workoutId);return w.exercises.reduce((sum,ex)=>sum+existingSetsFor(ex,sess).filter(s=>s.done).length,0)}
 function sessionVolume(sess){const w=workout(sess.workoutId);return w.exercises.reduce((sum,ex)=>sum+existingSetsFor(ex,sess).filter(s=>s.done).reduce((n,s)=>n+(Number(String(s.kg).replace(",","."))||0)*(Number(String(s.reps).replace(",","."))||0),0),0)}
 function finishHTML(sess){
   const w=workout(sess.workoutId),saved=!!sess.db&&statusSaysDone(sess),sets=sessionCompletedSets(sess),volume=sessionVolume(sess),rpe=state.sessionRpe[sessionKey(sess)]||averageRpeForSession(sess)||"";
-  const shownGroups=new Set();
-  const items=w.exercises.map((ex,i)=>{const skip=skipFor(ex,sess),doneSets=existingSetsFor(ex,sess).filter(s=>s.done).length,group=supersetGroupForExercise(ex,w,sess),groupHeader=group&&!shownGroups.has(group.key)?(shownGroups.add(group.key),`<div class="finish-group-label">${esc(group.label||"Superseria")}</div>`):"";return `${groupHeader}<div class="finish-list-row"><strong>${exerciseCode(i,sess)} · ${esc(ex.name)}</strong><span class="subtitle">${skip?"pominięte":seriesText(doneSets)}</span></div>`}).join("");
+  const items=workoutExerciseDetailsHTML(w,sess);
   return `<section class="finishScreen"><div class="finishHero"><div class="finish-check"><i data-lucide="check"></i></div><h2>Trening ukończony</h2><div class="subtitle">${esc(trainingDisplayName(w))} · ${dateShort(sessionPerformedDate(sess)||todayKey())}</div><div class="finish-stats"><div><strong>${sets}</strong><span>${seriesWord(sets)}</span></div><div><strong>${w.exercises.length}</strong><span>ćwiczeń</span></div><div><strong>${volume>=1000?(volume/1000).toFixed(1)+" t":Math.round(volume)+" kg"}</strong><span>objętość</span></div></div></div><div class="finish-body"><h3>Jak poszło? Ogólne RPE</h3><div class="subtitle">Jak ciężki był cały trening</div><div class="rpe-grid">${[6,7,8,9,10].map(v=>`<button class="rpe-choice ${String(rpe)===String(v)?"active":""}" onclick="setSessionRpe(${v})">${v}</button>`).join("")}</div><h3>Notatka dla trenera</h3><textarea style="margin-top:10px" placeholder="Jak się czułeś podczas treningu?" oninput="state.sessionNotes[sessionKey()]=this.value;save()">${esc(state.sessionNotes?.[sessionKey(sess)]||"")}</textarea><div class="finish-list">${items}</div></div><footer class="session-footer" style="grid-template-columns:1fr"><button class="btn" onclick="${saved?"exitSession()":`syncWorkout(${JSON.stringify(sess).replace(/"/g,"&quot;")})`}">${saved?"Wróć":"Zapisz trening"}</button></footer></section>`;
+}
+function historyDetailHTML(sess){
+  const w=workout(sess.workoutId),sets=sessionCompletedSets(sess),volume=sessionVolume(sess),rpe=averageRpeForSession(sess),done=statusSaysDone(sess),date=sessionPerformedDate(sess)||sess.date||"",note=state.sessionNotes?.[sessionKey(sess)]||"";
+  return `<section class="finishScreen"><div class="finishHero"><div class="finish-check"><i data-lucide="${done?"check":"clock-3"}"></i></div><h2>${esc(trainingDisplayName(w))}</h2><div class="subtitle">${dateShort(date)} · tydzień ${sess.week} · ${done?"ukończony":"częściowy"}</div><div class="finish-stats"><div><strong>${sets}</strong><span>${seriesWord(sets)}</span></div><div><strong>${volume>=1000?(volume/1000).toFixed(1)+" t":Math.round(volume)+" kg"}</strong><span>objętość</span></div><div><strong>${rpe||"—"}</strong><span>śr. RPE</span></div></div></div><div class="finish-body"><h3>Wykonane serie</h3>${note?`<div class="history-detail-note"><strong>Notatka do treningu</strong>${esc(note)}</div>`:""}<div class="finish-list">${workoutExerciseDetailsHTML(w,sess)}</div></div><footer class="session-footer" style="grid-template-columns:1fr"><button class="btn" onclick="exitSession()">Wróć do historii</button></footer></section>`;
 }
 function measurementEntries(){return Object.entries(state.measurements||{}).filter(([key])=>key.startsWith(planId()+"__")).map(([key,values])=>({date:key.split("__")[1]||"",...values})).sort((a,b)=>String(b.date).localeCompare(String(a.date)))}
 function renderMeasurements(){
@@ -844,7 +893,7 @@ function renderMeasurements(){
 function setMeasurement(name,value){const week=activePlanWeek(),key=planKey(`${todayKey()}__W${week}`);state.week=week;state.measurements[key]=state.measurements[key]||{};state.measurements[key][name]=value;save()}
 async function saveMeasurements(){const week=activePlanWeek(),key=planKey(`${todayKey()}__W${week}`),values=state.measurements[key]||{};if(!ATHLETE||!DB_PLAN){showToast("Brak aktywnego planu");return}try{showToast("Zapisywanie…");const payload={athlete_id:ATHLETE.id,plan_id:DB_PLAN.id,source_plan_key:sourcePlanKey(),client_key:CLIENT_ID,measurement_date:todayKey(),week_number:week,recorded_at:new Date().toISOString(),raw_payload:values};for(const [label,col] of Object.entries(MEASUREMENT_COLUMNS))payload[col]=nullableNumber(values[label]);const {error}=await sb.from("athlete_measurements").upsert(payload,{onConflict:"athlete_id,source_plan_key,measurement_date"});if(error)throw error;apiStatus="Zapis działa";apiStatusKind="ok";delete state.measurements[key];save();showToast("Pomiar zapisany");await apiGetMeasurements();render()}catch(e){console.error(e);apiStatus="Błąd zapisu do Supabase";apiStatusKind="err";showToast("Nie udało się zapisać");render()}}
 function loggedSetsForSession(sess){const prefix=sessionKey(sess)+"__E";return Object.entries(state.logs||{}).filter(([key])=>key.startsWith(prefix)).flatMap(([,sets])=>Array.isArray(sets)?sets:[])}
-function allLoggedSetsCount(){return Object.entries(state.logs||{}).filter(([key])=>key.startsWith(planId()+"__")).reduce((sum,[,sets])=>sum+(Array.isArray(sets)?sets.length:0),0)}
+function allLoggedSetsCount(){return Object.entries(state.logs||{}).filter(([key])=>key.startsWith(planId()+"__")).reduce((sum,[,sets])=>sum+(Array.isArray(sets)?sets.filter(set=>set.done).length:0),0)}
 function averageRpeForSession(sess){const values=loggedSetsForSession(sess).map(s=>String(s.rpe??"").trim()).filter(Boolean).map(Number).filter(Number.isFinite);return values.length?(values.reduce((a,b)=>a+b,0)/values.length).toFixed(1):""}
 function renderHistory(){
   const rows=DB_WORKOUT_SESSIONS.slice().sort((a,b)=>String(b.performed_date||b.workout_date||"").localeCompare(String(a.performed_date||a.workout_date||"")));
@@ -853,7 +902,7 @@ function renderHistory(){
     const sess=dbSessionToSchedule(db),date=db.performed_date||db.workout_date||"",month=date?dateObj(date).toLocaleDateString("pl-PL",{month:"long"}).toUpperCase():"";
     if(month!==lastMonth){html+=`<div class="month-label">${month}</div>`;lastMonth=month}
     const w=workout(sess.workoutId),sets=loggedSetsForSession(sess).filter(s=>s.done).length,rpe=averageRpeForSession(sess),done=statusSaysDone(sess);
-    html+=`<button class="history-item" onclick='setSession(${JSON.stringify(sess)})'><span class="history-date"><strong>${dateObj(date).getDate()}</strong><span>${dateObj(date).toLocaleDateString("pl-PL",{month:"short"}).replace(".","")}</span></span><span class="history-main"><strong>${esc(trainingDisplayName(w))}</strong><span>tydz. ${sess.week} · ${seriesText(sets)}${rpe?` · RPE ${rpe}`:""}</span></span><span class="status-pill ${done?"":"partial"}">${done?"ukończony":"częściowy"}</span></button>`;
+    html+=`<button class="history-item" onclick='openHistorySession(${JSON.stringify(sess)})'><span class="history-date"><strong>${dateObj(date).getDate()}</strong><span>${dateObj(date).toLocaleDateString("pl-PL",{month:"short"}).replace(".","")}</span></span><span class="history-main"><strong>${esc(trainingDisplayName(w))}</strong><span>tydz. ${sess.week} · ${seriesText(sets)}${rpe?` · RPE ${rpe}`:""}</span></span><span class="status-pill ${done?"":"partial"}">${done?"ukończony":"częściowy"}</span></button>`;
   }
   document.getElementById("view").innerHTML=`<div class="history-screen">${rows.length?`<div class="history-list">${html}</div>`:`<div class="empty">Brak zapisanych treningów.</div>`}</div>`;
 }
