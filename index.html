@@ -477,7 +477,7 @@ h3{font-size:15px;line-height:1.25;margin:0}
 </nav>
 </div><div id="modalRoot"></div>
 <script>
-const FRONTEND_VERSION="v0.4.1-history-details";
+const FRONTEND_VERSION="v0.4.2-history-exercise-match";
 const SUPABASE_URL="https://matuflemwleglsrzrlkp.supabase.co";
 const SUPABASE_KEY="sb_publishable_D1z2s-S-GrnWH9u9D8P1nA_H3T9W7hF";
 function bootError(message){
@@ -946,10 +946,24 @@ async function syncWorkout(sess=currentSession()){
 function setLogPayload(workoutSessionId,sess,ex,extra,recordedAt){return{workout_session_id:workoutSessionId,athlete_id:ATHLETE.id,plan_id:DB_PLAN.id,source_plan_key:sourcePlanKey(),client_key:CLIENT_ID,session_id:sess.id,exercise_no:ex.no||null,exercise_name:ex.name||"Ćwiczenie",recorded_at:recordedAt,...extra}}
 
 function parseDoneFlag(v){return v===true||String(v||"").toLowerCase()==="true"||String(v||"")==="1"||String(v||"").toLowerCase()==="tak"}
+function exerciseForServerLogRow(r){
+  const sid=r.session_id||r.sessionId||"",rawNo=String(r.exercise_no||r.exerciseNo||""),rowName=normText(r.exercise_name||r.exerciseName||"");
+  const dbSession=DB_WORKOUT_SESSIONS.find(session=>String(session.session_id)===String(sid));
+  const sess=dbSession?dbSessionToSchedule(dbSession):schedule().find(session=>String(session.id)===String(sid));
+  if(!sess)return null;
+  const exercises=workout(sess.workoutId).exercises||[];
+  if(rowName){
+    const byName=exercises.filter(ex=>normText(ex.name)===rowName);
+    if(byName.length===1)return byName[0];
+    if(byName.length>1)return byName.find(ex=>String(ex.no)===rawNo)||byName[0];
+  }
+  return exercises.find(ex=>String(ex.no)===rawNo)||null;
+}
+function resolvedExerciseNoForServerLogRow(r){const ex=exerciseForServerLogRow(r);return String(ex?.no||r.exercise_no||r.exerciseNo||"")}
 function normalizeServerLogRow(r){
   const pid=r.plan_id||r.planId||planId();
   const sid=r.session_id||r.sessionId||"";
-  const exNo=r.exercise_no||r.exerciseNo||"";
+  const exNo=resolvedExerciseNoForServerLogRow(r);
   if(!pid||!sid||!exNo)return null;
   const key=`${pid}__${sid}__E${exNo}`;
   const setNo=parseInt(r.set_no||r.setNo||"1",10)||1;
@@ -970,7 +984,7 @@ function hydrateLogsFromServer(rows){
     const pid=r.plan_id||r.planId||planId();
     if(pid!==planId())return;
     const sid=r.session_id||r.sessionId||"";
-    if(String(r.planned_label||r.plannedLabel||"").toUpperCase().includes("POMINI")){const exNo=r.exercise_no||r.exerciseNo||"";if(sid&&exNo){state.skips=state.skips||{};state.skips[`${pid}__${sid}__E${exNo}`]={reason:r.note||"Pominięte",at:r.timestamp||""}}return;}
+    if(String(r.planned_label||r.plannedLabel||"").toUpperCase().includes("POMINI")){const exNo=resolvedExerciseNoForServerLogRow(r);if(sid&&exNo){state.skips=state.skips||{};state.skips[`${pid}__${sid}__E${exNo}`]={reason:r.note||"Pominięte",at:r.timestamp||""}}return;}
     const n=normalizeServerLogRow(r);
     if(!n)return;
     const unique=`${n.key}__S${n.setNo}`;
