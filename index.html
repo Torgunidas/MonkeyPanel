@@ -484,7 +484,7 @@ h3{font-size:15px;line-height:1.25;margin:0}
 </nav>
 </div><div id="modalRoot"></div>
 <script>
-const FRONTEND_VERSION="v0.4.3-full-measurement-history";
+const FRONTEND_VERSION="v0.4.4-progression-sync";
 const SUPABASE_URL="https://matuflemwleglsrzrlkp.supabase.co";
 const SUPABASE_KEY="sb_publishable_D1z2s-S-GrnWH9u9D8P1nA_H3T9W7hF";
 function bootError(message){
@@ -1075,6 +1075,13 @@ function progressionMatches(te,week){
   if(exact.length)return exact;
   const byExercise=candidates.filter(x=>!x.training_exercise_id&&te.exercise_id&&x.exercise_id===te.exercise_id);
   if(byExercise.length)return byExercise;
+  const sameTrainingExercise=candidates.filter(x=>{
+    if(!te.exercise_id||x.exercise_id!==te.exercise_id)return false;
+    if(!x.training_exercise_id)return true;
+    const linked=DB_TRAINING_EXERCISES.find(row=>row.id===x.training_exercise_id);
+    return linked?.training_id===te.training_id;
+  });
+  if(sameTrainingExercise.length===1)return sameTrainingExercise;
   const name=normText(trainingExerciseName(te));
   return candidates.filter(x=>!x.training_exercise_id&&normText(x.source_name||x.exercises?.name)===name);
 }
@@ -1105,6 +1112,27 @@ function prescriptionsFor(te){
     if(rows.length)out[String(week)]=rows.map(prescriptionFromRow);
   }
   return out;
+}
+function untouchedDraftSets(sets){
+  return Array.isArray(sets)&&sets.every(s=>
+    !s.done&&!String(s.rpe||"").trim()&&!String(s.freeNote||"").trim()&&
+    !String(s.kg||"").trim()&&!String(s.reps||"").trim()
+  );
+}
+function refreshUntouchedDraftsFromProgression(){
+  let changed=false;
+  for(const sess of schedule()){
+    const w=workout(sess.workoutId);
+    for(const ex of w.exercises){
+      if(!prescriptionForCurrentWeek(ex,sess).length)continue;
+      const key=exerciseKey(ex,sess),existing=state.logs[key];
+      if(!untouchedDraftSets(existing))continue;
+      state.logs[key]=defaultSets(ex,sess);
+      changed=true;
+    }
+  }
+  if(changed)save();
+  return changed;
 }
 function mapTrainingExercise(te,i){
   const name=trainingExerciseName(te),type=te.mode||te.exercises?.default_mode||te.exercises?.default_category||"";
@@ -1161,6 +1189,7 @@ async function apiGetPlan(){
     const peIds=DB_PROGRESSION_EXERCISES.map(x=>x.id);
     DB_PROGRESSION_SETS=peIds.length?await must(await sb.from("progression_sets").select("id,progression_exercise_id,week_number,set_no,label,reps_text,kg,raw_text,load_text,set_count,is_skip,is_deload,rest_text,notes").in("progression_exercise_id",peIds).order("week_number")):[];
     PLAN=mapPlanWorkouts();
+    refreshUntouchedDraftsFromProgression();
     VIDEOS={};
     DB_TRAINING_EXERCISES.forEach(te=>{const url=te.exercises?.youtube_url||te.video_hint;if(url)VIDEOS[trainingExerciseName(te)]=url});
     if(rpeRows.length)RPE=rpeRows.map(x=>[String(x.rpe),x.description,x.reserve||""]);
