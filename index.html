@@ -429,9 +429,16 @@ h3{font-size:15px;line-height:1.25;margin:0}
   outline:0;
 }
 .field input:focus{border-color:var(--accent)}
-.measure-history{margin-top:20px;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
-.measure-history-row{display:flex;justify-content:space-between;gap:12px;padding:13px;border-bottom:1px solid var(--line);font-size:13px}
-.measure-history-row:last-child{border-bottom:0}
+.measure-history{display:grid;gap:10px}
+.measure-history-card{border:1px solid var(--line);border-radius:11px;background:#fff;overflow:hidden}
+.measure-history-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 13px;border-bottom:1px solid var(--line)}
+.measure-history-head strong{display:block;font-size:13px;text-transform:capitalize}
+.measure-history-head span{display:block;margin-top:2px;color:var(--muted);font-size:10px}
+.measure-history-values{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px 12px 12px}
+.measure-history-value{min-width:0;padding:9px 10px;border-radius:8px;background:#f7f8f5}
+.measure-history-value span{display:block;margin-bottom:3px;color:#a3a7ae;font-size:9px;font-weight:700;text-transform:uppercase}
+.measure-history-value strong{display:block;font-size:14px;overflow-wrap:anywhere}
+.measure-history-value small{color:var(--muted);font-size:10px;font-weight:600}
 .toast{position:fixed;z-index:80;left:50%;bottom:94px;width:min(440px,calc(100% - 28px));transform:translateX(-50%);padding:13px 15px;border-radius:10px;background:var(--ink);color:#fff;text-align:center;font-size:13px;font-weight:700;box-shadow:var(--shadow)}
 .celebrationOverlay{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(35,38,41,.48);transition:opacity .25s ease}
 .celebrationCard{width:min(330px,100%);padding:26px;border-radius:12px;background:#fff;text-align:center;box-shadow:0 24px 70px rgba(35,38,41,.25)}
@@ -477,7 +484,7 @@ h3{font-size:15px;line-height:1.25;margin:0}
 </nav>
 </div><div id="modalRoot"></div>
 <script>
-const FRONTEND_VERSION="v0.4.2-history-exercise-match";
+const FRONTEND_VERSION="v0.4.3-full-measurement-history";
 const SUPABASE_URL="https://matuflemwleglsrzrlkp.supabase.co";
 const SUPABASE_KEY="sb_publishable_D1z2s-S-GrnWH9u9D8P1nA_H3T9W7hF";
 function bootError(message){
@@ -551,7 +558,16 @@ async function renderClientSelector(){
 
 const STATE_KEY=`monkeypanel.alpha.v04.${CLIENT_ID}`;
 let START_DATE="2026-05-12";let TOTAL_WEEKS=11;let DAYS=[{dow:"wt.",workoutId:1,offset:0},{dow:"czw.",workoutId:2,offset:2},{dow:"sob.",workoutId:3,offset:4},{dow:"ndz.",workoutId:4,offset:5}];
-const MEASUREMENTS=["Udo","Dupa","Brzuch","Klatka","Biceps","Szyja","Waga"];
+const MEASUREMENT_FIELDS=[
+  {name:"Waga",label:"Waga",unit:"kg"},
+  {name:"Klatka",label:"Klatka",unit:"cm"},
+  {name:"Biceps",label:"Biceps",unit:"cm"},
+  {name:"Udo",label:"Udo",unit:"cm"},
+  {name:"Dupa",label:"Pośladki",unit:"cm"},
+  {name:"Brzuch",label:"Brzuch",unit:"cm"},
+  {name:"Szyja",label:"Szyja",unit:"cm"}
+];
+const MEASUREMENTS=MEASUREMENT_FIELDS.map(field=>field.name);
 let PLAN=[{id:1,name:"1 TRENING",focus:"",exercises:[]},{id:2,name:"2 TRENING",focus:"",exercises:[]},{id:3,name:"3 TRENING",focus:"",exercises:[]},{id:4,name:"4 TRENING",focus:"",exercises:[]}];let VIDEOS={};let RPE=[["10","Maksimum. Więcej nie dasz rady.","0"],["9","Bardzo ciężko, ale jedno powtórzenie jeszcze da się zrobić.","1"],["8","Mocno, ale kontrolujesz. 2 powtórzenia w zapasie.","2"],["7","Średnio ciężko. 3 powtórzenia w zapasie.","3"],["6","Lekko.","4+"]];
 let CURRENT_PLAN={planId:"loading",planName:"Ładowanie planu",planStatus:"active"};
 let state=load(STATE_KEY,{view:"today",mode:"calendar",activeSessionId:null,workoutId:1,week:1,exerciseIndex:0,logs:{},skips:{},serverStatus:{},measurements:{},notes:{},sessionNotes:{},sessionRpe:{},videoOpen:{},modeOverrides:{},planArchive:{},selectedPlanId:null});
@@ -880,15 +896,26 @@ function historyDetailHTML(sess){
   const w=workout(sess.workoutId),sets=sessionCompletedSets(sess),volume=sessionVolume(sess),rpe=averageRpeForSession(sess),done=statusSaysDone(sess),date=sessionPerformedDate(sess)||sess.date||"",note=state.sessionNotes?.[sessionKey(sess)]||"";
   return `<section class="finishScreen"><div class="finishHero"><div class="finish-check"><i data-lucide="${done?"check":"clock-3"}"></i></div><h2>${esc(trainingDisplayName(w))}</h2><div class="subtitle">${dateShort(date)} · tydzień ${sess.week} · ${done?"ukończony":"częściowy"}</div><div class="finish-stats"><div><strong>${sets}</strong><span>${seriesWord(sets)}</span></div><div><strong>${volume>=1000?(volume/1000).toFixed(1)+" t":Math.round(volume)+" kg"}</strong><span>objętość</span></div><div><strong>${rpe||"—"}</strong><span>śr. RPE</span></div></div></div><div class="finish-body"><h3>Wykonane serie</h3>${note?`<div class="history-detail-note"><strong>Notatka do treningu</strong>${esc(note)}</div>`:""}<div class="finish-list">${workoutExerciseDetailsHTML(w,sess)}</div></div><footer class="session-footer" style="grid-template-columns:1fr"><button class="btn" onclick="exitSession()">Wróć do historii</button></footer></section>`;
 }
-function measurementEntries(){return Object.entries(state.measurements||{}).filter(([key])=>key.startsWith(planId()+"__")).map(([key,values])=>({date:key.split("__")[1]||"",...values})).sort((a,b)=>String(b.date).localeCompare(String(a.date)))}
+function hasMeasurementValue(value){return value!==null&&value!==undefined&&String(value).trim()!==""}
+function measurementEntries(){
+  const prefix=`${planId()}__`;
+  return Object.entries(state.measurements||{}).filter(([key])=>key.startsWith(prefix)).map(([key,values])=>{
+    const [date,weekToken]=key.slice(prefix.length).split("__");
+    return {...values,date:date||values.date||"",week:values.week||String(weekToken||"").replace(/^W/,"")};
+  }).filter(entry=>MEASUREMENT_FIELDS.some(field=>hasMeasurementValue(entry[field.name]))).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+}
+function measurementDateLabel(iso){return iso?dateObj(iso).toLocaleDateString("pl-PL",{day:"numeric",month:"long",year:"numeric"}):"-"}
+function measurementHistoryCardHTML(entry){
+  const values=MEASUREMENT_FIELDS.filter(field=>hasMeasurementValue(entry[field.name])).map(field=>`<div class="measure-history-value"><span>${esc(field.label)}</span><strong>${esc(entry[field.name])} <small>${field.unit}</small></strong></div>`).join("");
+  return `<article class="measure-history-card"><header class="measure-history-head"><div><strong>${esc(measurementDateLabel(entry.date))}</strong>${entry.week?`<span>Tydzień ${esc(entry.week)}</span>`:""}</div></header><div class="measure-history-values">${values}</div></article>`;
+}
 function renderMeasurements(){
-  const key=planKey(`${todayKey()}__W${activePlanWeek()}`),vals=state.measurements[key]||{},entries=measurementEntries(),latest=entries.find(x=>x.Waga),previous=entries.slice(1).find(x=>x.Waga);
+  const key=planKey(`${todayKey()}__W${activePlanWeek()}`),vals=state.measurements[key]||{},entries=measurementEntries(),latestWeightIndex=entries.findIndex(x=>hasMeasurementValue(x.Waga)),latest=latestWeightIndex>=0?entries[latestWeightIndex]:null,previous=latestWeightIndex>=0?entries.slice(latestWeightIndex+1).find(x=>hasMeasurementValue(x.Waga)):null;
   const delta=latest&&previous?Number(latest.Waga)-Number(previous.Waga):null;
   const deltaText=delta!==null&&Number.isFinite(delta)?(Math.round((Math.abs(delta)+1e-9)*10)/10).toFixed(1):"";
   const latestCard=latest?`<section class="card measure-latest"><div><div class="label">Waga</div><div class="weight">${esc(latest.Waga)}<span> kg</span></div></div>${deltaText?`<span class="delta-pill">${delta<=0?"↓":"↑"} ${deltaText} kg</span>`:""}</section>`:"";
-  const fields=["Waga","Klatka","Biceps","Udo","Dupa","Brzuch","Szyja"];
-  const history=entries.filter(x=>x.Waga).slice(0,8).map(x=>`<div class="measure-history-row"><span>${dateShort(x.date)}</span><strong>${esc(x.Waga)} kg</strong></div>`).join("");
-  document.getElementById("view").innerHTML=`<div class="measure-screen">${latestCard}<h3 style="margin-bottom:12px">Nowy pomiar</h3><section class="card"><div class="measure-form">${fields.map(m=>`<div class="field"><label>${m==="Dupa"?"Pośladki":m} (${m==="Waga"?"kg":"cm"})</label><input inputmode="decimal" placeholder="—" value="${esc(vals[m]||"")}" oninput="setMeasurement('${m}',this.value)"></div>`).join("")}</div><button class="btn full" style="margin-top:14px" onclick="saveMeasurements()">Zapisz pomiar</button></section><h3 style="margin:22px 0 12px">Ostatnie</h3>${history?`<div class="measure-history">${history}</div>`:`<div class="empty">Brak zapisanych pomiarów.</div>`}</div>`;
+  const history=entries.map(measurementHistoryCardHTML).join("");
+  document.getElementById("view").innerHTML=`<div class="measure-screen">${latestCard}<h3 style="margin-bottom:12px">Nowy pomiar</h3><section class="card"><div class="measure-form">${MEASUREMENT_FIELDS.map(field=>`<div class="field"><label>${field.label} (${field.unit})</label><input inputmode="decimal" placeholder="—" value="${esc(vals[field.name]||"")}" oninput="setMeasurement('${field.name}',this.value)"></div>`).join("")}</div><button class="btn full" style="margin-top:14px" onclick="saveMeasurements()">Zapisz pomiar</button></section><div class="section-head" style="margin-top:22px"><strong>Historia pomiarów</strong><span>Łącznie: ${entries.length}</span></div>${history?`<div class="measure-history">${history}</div>`:`<div class="empty">Brak zapisanych pomiarów.</div>`}</div>`;
 }
 function setMeasurement(name,value){const week=activePlanWeek(),key=planKey(`${todayKey()}__W${week}`);state.week=week;state.measurements[key]=state.measurements[key]||{};state.measurements[key][name]=value;save()}
 async function saveMeasurements(){const week=activePlanWeek(),key=planKey(`${todayKey()}__W${week}`),values=state.measurements[key]||{};if(!ATHLETE||!DB_PLAN){showToast("Brak aktywnego planu");return}try{showToast("Zapisywanie…");const payload={athlete_id:ATHLETE.id,plan_id:DB_PLAN.id,source_plan_key:sourcePlanKey(),client_key:CLIENT_ID,measurement_date:todayKey(),week_number:week,recorded_at:new Date().toISOString(),raw_payload:values};for(const [label,col] of Object.entries(MEASUREMENT_COLUMNS))payload[col]=nullableNumber(values[label]);const {error}=await sb.from("athlete_measurements").upsert(payload,{onConflict:"athlete_id,source_plan_key,measurement_date"});if(error)throw error;apiStatus="Zapis działa";apiStatusKind="ok";delete state.measurements[key];save();showToast("Pomiar zapisany");await apiGetMeasurements();render()}catch(e){console.error(e);apiStatus="Błąd zapisu do Supabase";apiStatusKind="err";showToast("Nie udało się zapisać");render()}}
