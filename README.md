@@ -28,6 +28,15 @@ Nigdy nie wymuszamy migracji workflow trenera.
 
 Projekt jest w fazie MVP.
 
+Aktualna aplikacja korzysta z Supabase i wymaga konta e-mail/hasło.
+Zawodnicy mają dostęp do własnego profilu, a trener do przypisanych profili
+w trybie podglądu. Publiczna rejestracja jest wyłączona; konta i przypisania
+tworzy administrator. Po zalogowaniu można użyć przycisku „Zmień hasło”.
+
+Opis reguł i weryfikacji: [bezpieczeństwo](docs/security/README.md).
+Lokalne testy: `npm ci`, następnie `npm test` (dane testowe, bez produkcji).
+Kod aplikacji jest statyczny i nie wymaga budowania przed publikacją w Pages.
+
 Priorytet:
 1. wygodne wykonywanie treningu na telefonie,
 2. synchronizacja z arkuszem,

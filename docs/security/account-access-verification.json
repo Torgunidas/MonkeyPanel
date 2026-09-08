@@ -1,0 +1,209 @@
+{
+  "date": "2026-09-08",
+  "migrations": [
+    "20260908125439_account_scoped_access",
+    "20260908125938_index_athlete_access"
+  ],
+  "rls": [
+    {
+      "table_name": "athlete_access",
+      "rls_enabled": true,
+      "anon_privileges": false
+    },
+    {
+      "table_name": "athlete_measurements",
+      "rls_enabled": true,
+      "anon_privileges": false
+    },
+    {
+      "table_name": "athletes",
+      "rls_enabled": true,
+      "anon_privileges": false
+    },
+    {
+      "table_name": "exercise_aliases",
+      "rls_enabled": true,
+      "anon_privileges": false
+    },
+    {
+      "table_name": "exercises",
+      "rls_enabled": true,
+      "anon_privileges": false
+    },
+    {
+      "table_name": "plan_athletes",
+      "rls_enabled": true,
+      "anon_privileges": false
+    },
+    {
+      "table_name": "plan_imports",
+      "rls_enabled": true,
+      "anon_privileges": false
+    },
+    {
+      "table_name": "plan_resources",
+      "rls_enabled": true,
+      "anon_privileges": false
+    },
+    {
+      "table_name": "plans",
+      "rls_enabled": true,
+      "anon_privileges": false
+    },
+    {
+      "table_name": "progression_blocks",
+      "rls_enabled": true,
+      "anon_privileges": false
+    },
+    {
+      "table_name": "progression_exercises",
+      "rls_enabled": true,
+      "anon_privileges": false
+    },
+    {
+      "table_name": "progression_sets",
+      "rls_enabled": true,
+      "anon_privileges": false
+    },
+    {
+      "table_name": "progression_week_notes",
+      "rls_enabled": true,
+      "anon_privileges": false
+    },
+    {
+      "table_name": "rpe_scale",
+      "rls_enabled": true,
+      "anon_privileges": false
+    },
+    {
+      "table_name": "training_exercises",
+      "rls_enabled": true,
+      "anon_privileges": false
+    },
+    {
+      "table_name": "trainings",
+      "rls_enabled": true,
+      "anon_privileges": false
+    },
+    {
+      "table_name": "workout_sessions",
+      "rls_enabled": true,
+      "anon_privileges": false
+    },
+    {
+      "table_name": "workout_set_logs",
+      "rls_enabled": true,
+      "anon_privileges": false
+    }
+  ],
+  "productionReadOnlyChecks": [
+    {
+      "testedRole": "owner_a",
+      "visibleProfileCount": 1,
+      "writableProfiles": 1,
+      "expectedScopeConfirmed": true
+    },
+    {
+      "testedRole": "owner_b",
+      "visibleProfileCount": 1,
+      "writableProfiles": 1,
+      "expectedScopeConfirmed": true
+    },
+    {
+      "testedRole": "coach",
+      "visibleProfileCount": 2,
+      "writableProfiles": 0,
+      "expectedScopeConfirmed": true
+    },
+    {
+      "testedRole": "unassigned",
+      "visibleProfileCount": 0,
+      "writableProfiles": 0,
+      "expectedScopeConfirmed": true
+    }
+  ],
+  "dataCountsUnchanged": true,
+  "appTableCounts": [
+    {
+      "table_name": "athlete_measurements",
+      "row_count": 5
+    },
+    {
+      "table_name": "athletes",
+      "row_count": 3
+    },
+    {
+      "table_name": "exercise_aliases",
+      "row_count": 0
+    },
+    {
+      "table_name": "exercises",
+      "row_count": 64
+    },
+    {
+      "table_name": "plan_athletes",
+      "row_count": 2
+    },
+    {
+      "table_name": "plan_imports",
+      "row_count": 1
+    },
+    {
+      "table_name": "plan_resources",
+      "row_count": 5
+    },
+    {
+      "table_name": "plans",
+      "row_count": 6
+    },
+    {
+      "table_name": "progression_blocks",
+      "row_count": 6
+    },
+    {
+      "table_name": "progression_exercises",
+      "row_count": 77
+    },
+    {
+      "table_name": "progression_sets",
+      "row_count": 922
+    },
+    {
+      "table_name": "progression_week_notes",
+      "row_count": 10
+    },
+    {
+      "table_name": "rpe_scale",
+      "row_count": 5
+    },
+    {
+      "table_name": "training_exercises",
+      "row_count": 99
+    },
+    {
+      "table_name": "trainings",
+      "row_count": 15
+    },
+    {
+      "table_name": "workout_sessions",
+      "row_count": 49
+    },
+    {
+      "table_name": "workout_set_logs",
+      "row_count": 1391
+    }
+  ],
+  "localTests": {
+    "passed": 24,
+    "failed": 0,
+    "scope": "Synthetic Postgres policies, atomic writes, auth UI and existing prescription tests"
+  },
+  "liveBrowserCheck": "Signed-out login screen verified; no real account password supplied to the agent.",
+  "authSettings": {
+    "publicSignup": false,
+    "anonymousSignIn": false,
+    "requireCurrentPasswordForChange": true,
+    "minimumPasswordLength": 12,
+    "leakedPasswordProtection": false
+  }
+}

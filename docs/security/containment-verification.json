@@ -1,0 +1,91 @@
+{
+  "project_ref": "matuflemwleglsrzrlkp",
+  "migration": "20260908074510_contain_public_app_tables",
+  "metadata_checks": {
+    "table_count": 17,
+    "rls_enabled_count": 17,
+    "tables_accessible_to_anon": 0,
+    "tables_accessible_to_authenticated": 0,
+    "public_policies": 0
+  },
+  "row_counts_unchanged": true,
+  "row_counts": [
+    {
+      "table_name": "athlete_measurements",
+      "row_count": 5
+    },
+    {
+      "table_name": "athletes",
+      "row_count": 3
+    },
+    {
+      "table_name": "exercise_aliases",
+      "row_count": 0
+    },
+    {
+      "table_name": "exercises",
+      "row_count": 64
+    },
+    {
+      "table_name": "plan_athletes",
+      "row_count": 2
+    },
+    {
+      "table_name": "plan_imports",
+      "row_count": 1
+    },
+    {
+      "table_name": "plan_resources",
+      "row_count": 5
+    },
+    {
+      "table_name": "plans",
+      "row_count": 6
+    },
+    {
+      "table_name": "progression_blocks",
+      "row_count": 6
+    },
+    {
+      "table_name": "progression_exercises",
+      "row_count": 77
+    },
+    {
+      "table_name": "progression_sets",
+      "row_count": 922
+    },
+    {
+      "table_name": "progression_week_notes",
+      "row_count": 10
+    },
+    {
+      "table_name": "rpe_scale",
+      "row_count": 5
+    },
+    {
+      "table_name": "training_exercises",
+      "row_count": 99
+    },
+    {
+      "table_name": "trainings",
+      "row_count": 15
+    },
+    {
+      "table_name": "workout_sessions",
+      "row_count": 49
+    },
+    {
+      "table_name": "workout_set_logs",
+      "row_count": 1391
+    }
+  ],
+  "advisor_levels": {
+    "INFO": 17
+  },
+  "anonymous_api_test": {
+    "http_status": 401,
+    "database_code": "42501",
+    "path": "/rest/v1/athletes?select=id&limit=0",
+    "records_fetched": 0
+  }
+}
