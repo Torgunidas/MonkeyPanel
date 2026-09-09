@@ -5,6 +5,7 @@ import test from 'node:test';
 
 const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const source=html.match(/<script>\s*([\s\S]*?)<\/script>/)[1].replace(/apiGetPlan\(\)\.then\([\s\S]*$/, '');
+const editor=fs.readFileSync(new URL('../session-editor.js',import.meta.url),'utf8');
 function app(){
   const elements=new Map(), storage=new Map();
   const element=id=>{if(!elements.has(id))elements.set(id,{innerHTML:'',textContent:'',style:{},classList:{toggle(){},remove(){},add(){}}});return elements.get(id)};
@@ -12,7 +13,7 @@ function app(){
     window:{supabase:{createClient:()=>({})},addEventListener(){},scrollTo(){}},location:{search:'?client=test'},
     localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},
     document:{getElementById:element,querySelectorAll:()=>[],createElement:()=>({remove(){}})}});
-  vm.runInContext(source,context);
+  vm.runInContext(source+'\n'+editor,context);
   return {run:code=>vm.runInContext(code,context),context,elements};
 }
 

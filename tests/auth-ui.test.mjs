@@ -5,6 +5,7 @@ import test from 'node:test';
 
 const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const main=html.match(/<script>\s*([\s\S]*?)<\/script>/)[1];
+const editor=fs.readFileSync(new URL('../session-editor.js',import.meta.url),'utf8');
 const auth=fs.readFileSync(new URL('../auth.js',import.meta.url),'utf8').replace(/bootAuth\(\);\s*$/,'');
 
 function app({user=null,access=[],client='',storage=new Map()}={}){
@@ -25,7 +26,7 @@ function app({user=null,access=[],client='',storage=new Map()}={}){
     localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},
     document:{getElementById:element,querySelectorAll:()=>[],createElement:()=>({remove(){}}),body:{appendChild(){}}}
   });
-  vm.runInContext(main+'\n'+auth,context);
+  vm.runInContext(main+'\n'+editor+'\n'+auth,context);
   // Use deterministic synthetic app data while exercising the real auth flow.
   vm.runInContext(`apiGetPlan=async()=>{DB_PLAN={id:'plan'};ATHLETE={id:'athlete'};};
     apiGetWorkoutLog=async()=>{};apiGetMeasurements=async()=>{};`,context);

@@ -52,7 +52,7 @@ function prepareUserState(userId,clientKey,canWrite){
   // Preserve old drafts only after validating the signed-in owner's access.
   const saved=load(STATE_KEY,null) || (canWrite?load(`monkeypanel.alpha.v04.${clientKey}`,null):null);
   const result={...emptyState(),...(saved&&typeof saved==='object'&&!Array.isArray(saved)?saved:{})};
-  for(const field of ['logs','skips','serverStatus','measurements','notes','sessionNotes','sessionRpe','videoOpen','modeOverrides','planArchive']){
+  for(const field of ['logs','skips','serverStatus','measurements','notes','sessionNotes','sessionRpe','videoOpen','modeOverrides','planArchive','sessionWorkouts','sessionEdits']){
     if(!result[field]||typeof result[field]!=='object'||Array.isArray(result[field]))result[field]={};
   }
   if(!canWrite)result.mode='calendar';
@@ -61,7 +61,7 @@ function prepareUserState(userId,clientKey,canWrite){
 }
 
 function clearAuthenticatedState(){
-  APP_READY=false; AUTH_USER=null; CAN_WRITE=false; STATE_KEY=null;
+  APP_READY=false; SESSION_REVIEW_EDIT=false; cancelSetDrag(); AUTH_USER=null; CAN_WRITE=false; STATE_KEY=null;
   PROFILE_ACCESS=[]; ATHLETE=null; DB_PLAN=null; PLAN_LINKS=[];
   DB_TRAININGS=[]; DB_TRAINING_EXERCISES=[]; DB_PROGRESSION_BLOCKS=[];
   DB_PROGRESSION_EXERCISES=[]; DB_PROGRESSION_SETS=[]; DB_WEEK_NOTES=[];

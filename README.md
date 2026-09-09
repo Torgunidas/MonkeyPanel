@@ -37,6 +37,15 @@ Opis reguł i weryfikacji: [bezpieczeństwo](docs/security/README.md).
 Lokalne testy: `npm ci`, następnie `npm test` (dane testowe, bez produkcji).
 Kod aplikacji jest statyczny i nie wymaga budowania przed publikacją w Pages.
 
+W trakcie treningu „Dodaj ćwiczenie” dopisuje ćwiczenie wyłącznie do tej sesji.
+„Ćwiczenia tej sesji” pozwala wrócić do dowolnego ćwiczenia przed zapisem.
+Serie można dodać na początku i na końcu; uchwyt obok numeru służy do
+przeciągania. Kliknięcie uchwytu otwiera opcje przesunięcia, dodania serii przed
+lub po wybranej oraz usunięcia. Uchwyt obsługuje również strzałki klawiatury.
+Kolejność, wyniki i lista ćwiczeń są zapisywane w historii sesji. Plan trenera
+oraz kolejne sesje zachowują swoje pierwotne ćwiczenia. Nie wymaga to migracji
+bazy. Przy publikacji trzeba uwzględnić `session-editor.js` i `session-editor.css`.
+
 Priorytet:
 1. wygodne wykonywanie treningu na telefonie,
 2. synchronizacja z arkuszem,

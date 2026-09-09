@@ -1,0 +1,22 @@
+.session-actions{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
+.session-actions .btn{flex:1 1 135px;min-height:40px;padding:9px;font-size:11px}
+.session-only-label{display:block;color:var(--accent-ink);font-size:11px;font-weight:600;margin:6px 0 10px}
+.set-drag-handle{border:0;border-radius:6px;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:46px;width:34px;padding:2px;color:var(--muted);font-size:11px;cursor:grab;touch-action:none;user-select:none}
+.set-drag-handle span:first-child{font-size:22px;line-height:20px}
+.set-drag-handle:active{cursor:grabbing}
+.set-drag-handle:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.set-row.locked .set-drag-handle,.superset-step.locked .set-drag-handle{pointer-events:auto;opacity:1}
+.set-dragging{opacity:.55}
+.set-drop-target{outline:2px dashed var(--accent);outline-offset:2px}
+.superset-step-head .set-drag-handle{flex:none;margin-left:-5px}
+.session-exercise-form{display:grid;gap:16px;margin-top:18px}
+.session-exercise-form .field{display:grid;gap:6px}
+.session-exercise-form input,.session-exercise-form select{width:100%;min-height:46px;border:1px solid var(--line);border-radius:8px;padding:10px;background:white;font:inherit}
+.session-exercise-list{margin:14px 0}
+.session-exercise-choice{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:white;padding:14px 0;font:inherit}
+.session-exercise-choice small{display:block;color:var(--muted);font-size:11px;margin-top:6px}
+.set-action-menu{display:grid;gap:10px;margin-top:20px}
+.dialog-head{display:flex;gap:12px;align-items:center;justify-content:space-between}
+.dialog-head h2{font-size:18px;margin:0}
+.dialog-head .icon-btn{flex-shrink:0}
+@media(max-width:380px){.sets-head,.set-row{grid-template-columns:32px minmax(0,1fr) minmax(0,1fr) 58px 40px;gap:5px}.set-row input,.set-row select{padding:5px}}
