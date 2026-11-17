@@ -24,13 +24,31 @@ function markSessionChanged(sess=currentSession()){
 function hasSessionEdits(sess=currentSession()){return !!state.sessionEdits?.[sessionKey(sess)]}
 function editSessionExercise(index){
   if(!canEditSession())return;
+  state.sessionSummaryOpen=false;
   SESSION_REVIEW_EDIT=true;
   state.exerciseIndex=Math.max(0,Math.min(index,sessionWorkout().exercises.length-1));
   render();scrollToExerciseTop();
 }
+function showSessionSummary(){
+  if(!canEditSession())return;
+  state.sessionSummaryOpen=true;
+  SESSION_REVIEW_EDIT=false;
+  document.activeElement?.blur?.();
+  cancelSetDrag();
+  render();scrollToExerciseTop();
+}
+function sessionNextButtonHTML(last){
+  return `<button class="btn" onclick="${last?"showSessionSummary()":"nextExercise()"}">${last?"Podsumowanie":"Następne ćwiczenie"} <span aria-hidden="true">→</span></button>`;
+}
+function pendingSessionExercisesHTML(sess=currentSession()){
+  if(sessionDone(sess))return "";
+  const pending=sessionWorkout(sess).exercises.map((ex,index)=>({ex,index})).filter(({ex})=>!exerciseDone(ex,sess));
+  if(!pending.length)return "";
+  return `<section class="session-pending"><h3>Do sprawdzenia: ${pending.length}</h3><p class="subtitle">Nie wszystkie serie są zaliczone. Wróć do ćwiczenia lub zapisz wykonany trening.</p><div class="session-exercise-list">${pending.map(({ex,index})=>{const sets=existingSetsFor(ex,sess);return `<button class="session-exercise-choice" onclick="editSessionExercise(${index})"><span>${esc(ex.name)}<small>${sets.length?`Nieukończone · serie ${sets.filter(set=>set.done).length}/${sets.length}`:"Brak serii — uzupełnij lub pomiń"}</small></span><span aria-hidden="true">→</span></button>`}).join("")}</div></section>`;
+}
 function sessionActionsHTML(){
   if(!canEditSession())return "";
-  return `<div class="session-actions"><button class="btn ghost" onclick="showSessionExercises()">Ćwiczenia tej sesji</button><button class="btn ghost" onclick="showAddSessionExercise()">+ Dodaj ćwiczenie</button>${SESSION_REVIEW_EDIT&&sessionDone()?'<button class="btn ghost" onclick="SESSION_REVIEW_EDIT=false;render()">Wróć do podsumowania</button>':''}</div>`;
+  return `<div class="session-actions"><button class="btn ghost" onclick="showSessionExercises()">Ćwiczenia tej sesji</button><button class="btn ghost" onclick="showAddSessionExercise()">+ Dodaj ćwiczenie</button>${SESSION_REVIEW_EDIT&&sessionDone()?'<button class="btn ghost" onclick="showSessionSummary()">Wróć do podsumowania</button>':''}</div>`;
 }
 function updateSessionNote(value){if(!canEditSession())return;state.sessionNotes[sessionKey()]=value;markSessionChanged()}
 function openSessionModal(title,body){
@@ -62,6 +80,7 @@ function addSessionExercise(name,type="sets"){
   exercises.push(ex);
   state.logs[exerciseKey(ex)]=defaultSets(ex);
   state.exerciseIndex=exercises.length-1;
+  state.sessionSummaryOpen=false;
   SESSION_REVIEW_EDIT=true;
   markSessionChanged();hideModal();render();scrollToExerciseTop();
   return ex;
@@ -105,7 +124,7 @@ function removeSessionSet(exerciseId,setId){
   sets.splice(index,1);markSessionChanged();hideModal();render();
 }
 function setHandleHTML(ex,set,index){
-  return `<button class="set-drag-handle" type="button" aria-label="Seria ${index+1}: przesuń lub otwórz opcje" title="Przeciągnij serię lub kliknij po opcje" onpointerdown="beginSetDrag(event,'${ex.id}','${set.id}')" onpointermove="moveSetDrag(event)" onpointerup="endSetDrag(event)" onpointercancel="cancelSetDrag()" onclick="setHandleClick('${ex.id}','${set.id}')" onkeydown="setHandleKey(event,'${ex.id}','${set.id}')"><span aria-hidden="true">⠿</span><span>${index+1}</span></button>`;
+  return `<button class="set-drag-handle" type="button" aria-label="Seria ${index+1}: przesuń lub otwórz opcje" title="Przeciągnij serię lub kliknij po opcje" onpointerdown="beginSetDrag(event,'${ex.id}','${set.id}')" onpointermove="moveSetDrag(event)" onpointerup="endSetDrag(event)" onpointercancel="cancelSetDrag()" onlostpointercapture="cancelSetDrag()" onclick="setHandleClick('${ex.id}','${set.id}')" onkeydown="setHandleKey(event,'${ex.id}','${set.id}')"><span aria-hidden="true">⠿</span><span>${index+1}</span></button>`;
 }
 function setHandleClick(exerciseId,setId){if(consumedSetDrag){consumedSetDrag=false;return}showSetActions(exerciseId,setId)}
 function setHandleKey(event,exerciseId,setId){
@@ -138,6 +157,7 @@ function updateSetDragTarget(){
 }
 function scrollSetDrag(){
   if(!setDrag?.moved)return;
+  if(!setDrag.handle.isConnected||document.hidden||document.activeElement?.matches?.('input,textarea,select')){cancelSetDrag();return}
   const edge=100,y=setDrag.y,speed=y<edge?-10:y>window.innerHeight-edge?10:0;
   if(speed)window.scrollBy(0,speed);
   updateSetDragTarget();setDrag.frame=requestAnimationFrame(scrollSetDrag);
@@ -146,11 +166,12 @@ function moveSetDrag(event){
   if(!setDrag||event.pointerId!==setDrag.pointerId)return;
   setDrag.y=event.clientY;
   if(!setDrag.moved&&Math.abs(setDrag.y-setDrag.startY)>6){setDrag.moved=true;setElement(setDrag.exerciseId,setDrag.setId)?.classList.add('set-dragging');scrollSetDrag()}
-  if(setDrag.moved){event.preventDefault();updateSetDragTarget()}
+  if(setDrag?.moved){event.preventDefault();updateSetDragTarget()}
 }
 function cancelSetDrag(){
   if(!setDrag)return;
   const drag=setDrag;setDrag=null;
+  if(drag.moved)consumedSetDrag=true;
   if(drag.frame)cancelAnimationFrame(drag.frame);
   if(drag.handle.hasPointerCapture(drag.pointerId))drag.handle.releasePointerCapture(drag.pointerId);
   setElements(drag.exerciseId).forEach(el=>el.classList.remove('set-dragging','set-drop-target'));
@@ -160,6 +181,11 @@ function endSetDrag(event){
   const drag=setDrag;cancelSetDrag();
   if(drag.moved){consumedSetDrag=true;moveSessionSet(drag.exerciseId,drag.setId,drag.target)}
 }
+window.addEventListener('blur',cancelSetDrag);
+window.addEventListener('pagehide',cancelSetDrag);
+window.addEventListener('focusin',event=>{
+  if(event.target.matches?.('input,textarea,select'))cancelSetDrag();
+});
 
 // Read the immutable exercise snapshot before resolving log identity. Extra exercises may
 // have the same name as a planned exercise, so names alone must not merge their results.
